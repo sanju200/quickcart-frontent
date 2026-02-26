@@ -6,8 +6,11 @@ import {
   ScrollView,
   TouchableOpacity,
   Image,
+  ActivityIndicator,
 } from 'react-native';
 import { useAppNavigation } from '../../App';
+import { getAllProducts, Product } from '../services/product.service';
+import { useEffect } from 'react';
 
 const CATEGORY_TABS = [
   { id: '1', title: 'All Products', icon: '🏠' },
@@ -29,28 +32,24 @@ const CATEGORY_GRID = [
   { id: 'g6', category: 'beverages', title: 'Tea, Coffee & Health', icon: '☕', bgColor: '#EFEBE9' },
 ];
 
-// Expanded Popular Items (15 items)
-const POPULAR_ITEMS = [
-  { id: 'p1', name: 'Fresh Spinach', price: '₹40', weight: '250g', image: 'https://images.unsplash.com/photo-1576045057995-568f588f82fb?w=200&q=80' },
-  { id: 'p2', name: 'Organic Banana', price: '₹60', weight: '500g', image: 'https://images.unsplash.com/photo-1571771894821-ad996211fdf4?w=200&q=80' },
-  { id: 'p3', name: 'Baby Carrots', price: '₹50', weight: '200g', image: 'https://images.unsplash.com/photo-1522184216316-3c25379f9760?w=200&q=80' },
-  { id: 'p4', name: 'Red Apple', price: '₹120', weight: '500g', image: 'https://images.unsplash.com/photo-1560806887-1e4cd0b6cbd6?w=200&q=80' },
-  { id: 'p5', name: 'Fresh Milk', price: '₹35', weight: '500ml', image: 'https://images.unsplash.com/photo-1563636619-e910f01859ec?w=200&q=80' },
-  { id: 'p6', name: 'Alphonso Mango', price: '₹250', weight: '1kg', image: 'https://images.unsplash.com/photo-1553279768-865429fa0078?w=200&q=80' },
-  { id: 'p7', name: 'Green Grapes', price: '₹90', weight: '500g', image: 'https://images.unsplash.com/photo-1537640538966-79f369b41e8f?w=200&q=80' },
-  { id: 'p8', name: 'Potato', price: '₹30', weight: '1kg', image: 'https://images.unsplash.com/photo-1518977676601-b53f02ac6d31?w=200&q=80' },
-  { id: 'p9', name: 'Tomato', price: '₹45', weight: '500g', image: 'https://images.unsplash.com/photo-1546473144-c24555107d64?w=200&q=80' },
-  { id: 'p10', name: 'Amul Butter', price: '₹55', weight: '100g', image: 'https://images.unsplash.com/photo-1589985270826-4b7bb135bc9d?w=200&q=80' },
-  { id: 'p11', name: 'Lays Chips', price: '₹20', weight: '50g', image: 'https://images.unsplash.com/photo-1566478989125-5134764831ad?w=200&q=80' },
-  { id: 'p12', name: 'Orange Juice', price: '₹70', weight: '1L', image: 'https://images.unsplash.com/photo-1621506289937-a8e4df240d0b?w=200&q=80' },
-  { id: 'p13', name: 'Coca Cola', price: '₹40', weight: '600ml', image: 'https://images.unsplash.com/photo-1622483767028-3f66f32aef97?w=200&q=80' },
-  { id: 'p14', name: 'Dark Chocolate', price: '₹80', weight: '100g', image: 'https://images.unsplash.com/photo-1511381939415-e44015466834?w=200&q=80' },
-  { id: 'p15', name: 'Broccoli', price: '₹80', weight: '1 unit', image: 'https://images.unsplash.com/photo-1453306458620-5bbef13a5bca?w=200&q=80' },
-];
+// Removed POPULAR_ITEMS mock
+
 
 const Categories = () => {
   const [activeTab, setActiveTab ] = useState('1');
   const { navigate } = useAppNavigation();
+  const [recentlyOrdered, setRecentlyOrdered] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchRecentlyOrdered = async () => {
+    // API integration will be done later by the user
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    fetchRecentlyOrdered();
+  }, []);
 
   return (
     <View style={styles.container}>
@@ -112,29 +111,48 @@ const Categories = () => {
         ))}
       </View>
 
-      {/* Popular Items Section */}
+      {/* Recently Ordered Section */}
       <View style={styles.popularHeader}>
-        <Text style={styles.popularTitle}>🔥 Popular Items</Text>
-        <TouchableOpacity onPress={() => navigate('CATEGORY_PRODUCTS', { category: 'all' })}>
+        <Text style={styles.popularTitle}>� Recently Ordered</Text>
+        <TouchableOpacity onPress={() => navigate('ORDERS')}>
           <Text style={styles.seeAll}>View All</Text>
         </TouchableOpacity>
       </View>
 
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.popularScroll}>
-        {POPULAR_ITEMS.map((item) => (
-          <View key={item.id} style={styles.productCard}>
-            <Image source={{ uri: item.image }} style={styles.productImage} />
-            <Text style={styles.productName} numberOfLines={2}>{item.name}</Text>
-            <Text style={styles.productWeight}>{item.weight}</Text>
-            <View style={styles.priceRow}>
-              <Text style={styles.productPrice}>{item.price}</Text>
-              <TouchableOpacity style={styles.addButton}>
-                <Text style={styles.addText}>ADD</Text>
-              </TouchableOpacity>
+      {loading ? (
+        <View style={styles.loaderContainer}>
+          <ActivityIndicator size="small" color="#2E7D32" />
+        </View>
+      ) : error ? (
+        <View style={styles.loaderContainer}>
+          <Text style={styles.errorTextSmall}>{error}</Text>
+          <TouchableOpacity onPress={fetchRecentlyOrdered}>
+             <Text style={styles.retryTextSmall}>Tap to Retry</Text>
+          </TouchableOpacity>
+        </View>
+      ) : recentlyOrdered.length > 0 ? (
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.popularScroll}>
+          {recentlyOrdered.map((item) => (
+            <View key={item.id} style={styles.productCard}>
+              <Image source={{ uri: item.image }} style={styles.productImage} />
+              <Text style={styles.productName} numberOfLines={2}>{item.name}</Text>
+              <Text style={styles.productWeight}>{item.weight}</Text>
+              <View style={styles.priceRow}>
+                <Text style={styles.productPrice}>
+                  {typeof item.price === 'number' ? `₹${item.price}` : item.price}
+                </Text>
+                <TouchableOpacity style={styles.addButton}>
+                  <Text style={styles.addText}>ADD</Text>
+                </TouchableOpacity>
+              </View>
             </View>
-          </View>
-        ))}
-      </ScrollView>
+          ))}
+        </ScrollView>
+      ) : (
+        <View style={styles.emptyRecentContainer}>
+          <Text style={styles.emptyRecentText}>No recent orders yet</Text>
+        </View>
+      )}
     </View>
   );
 };
@@ -171,7 +189,8 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   tabScrollContent: {
-    paddingHorizontal: 15,
+    paddingLeft: 15,
+    paddingRight: 20,
     gap: 10,
     marginBottom: 20,
   },
@@ -305,6 +324,38 @@ const styles = StyleSheet.create({
     color: '#2E7D32',
     fontSize: 10,
     fontWeight: 'bold',
+  },
+  loaderContainer: {
+    height: 150,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+  },
+  errorTextSmall: {
+    color: '#d32f2f',
+    fontSize: 12,
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  retryTextSmall: {
+    color: '#2E7D32',
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  emptyRecentContainer: {
+    height: 100,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    marginHorizontal: 20,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#eee',
+    borderStyle: 'dashed',
+  },
+  emptyRecentText: {
+    color: '#999',
+    fontSize: 14,
   },
 });
 

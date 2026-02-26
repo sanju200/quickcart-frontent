@@ -1,5 +1,8 @@
 import React from 'react';
-import { StyleSheet, View, Text, ScrollView } from 'react-native';
+import { StyleSheet, View, Text, ScrollView, Dimensions } from 'react-native';
+
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const CARD_WIDTH = (SCREEN_WIDTH - 15 * 2 - 12) / 2; // 2 cards per row with padding and gap
 
 const FEATURES = [
   {
@@ -67,6 +70,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: 15,
+    paddingRight: 15,
     gap: 12,
   },
   card: {
@@ -74,7 +78,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 12,
     borderRadius: 16,
-    width: 200,
+    width: CARD_WIDTH,
     borderWidth: 1,
     borderColor: '#C8E6C9',
     shadowColor: '#000',

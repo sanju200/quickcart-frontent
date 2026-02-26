@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   StyleSheet,
   View,
@@ -9,14 +9,21 @@ import {
 } from 'react-native';
 
 import { useAppNavigation } from '../../App';
+import { getUserData, UserData } from '../services/authentication.service';
 
 const Header = () => {
   const { navigate } = useAppNavigation();
-  // Mock state for showing/hiding profile details (removed for full screen navigation)
-  const [user] = useState({
-    name: 'Sanjivani',
-    profilePic: 'https://i.pravatar.cc/150?u=sanjivani',
-  });
+  const [user, setUser] = useState<UserData | null>(null);
+
+  useEffect(() => {
+    const loadUser = async () => {
+      const data = await getUserData();
+      setUser(data);
+    };
+    loadUser();
+  }, []);
+
+  const getInitial = (name: string) => name.charAt(0).toUpperCase();
 
   return (
     <View style={styles.container}>
@@ -24,7 +31,11 @@ const Header = () => {
       <View style={styles.topBar}>
         {/* Profile Button (Left) */}
         <TouchableOpacity style={styles.profileButton} onPress={() => navigate('PROFILE')}>
-          <Image source={{ uri: user.profilePic }} style={styles.profileAvatar} />
+          <View style={styles.profileAvatarFallback}>
+            <Text style={styles.profileAvatarText}>
+              {user?.name ? getInitial(user.name) : '?'}
+            </Text>
+          </View>
         </TouchableOpacity>
 
         {/* Logo & Location (Center) */}
@@ -89,12 +100,18 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  profileAvatar: {
+  profileAvatarFallback: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    borderWidth: 2,
-    borderColor: '#2E7D32',
+    backgroundColor: '#2E7D32',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  profileAvatarText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
   centerContainer: {
     flex: 1,

@@ -2,7 +2,7 @@
  * QuickGreen - Home Page (Modular Architecture)
  */
 
-import React, { useState, createContext, useContext, useRef } from 'react';
+import React, { useState, useEffect, createContext, useContext, useRef } from 'react';
 import { 
   StatusBar, 
   StyleSheet, 
@@ -11,7 +11,8 @@ import {
   TouchableOpacity, 
   Text, 
   Animated, 
-  Dimensions 
+  Dimensions,
+  ActivityIndicator
 } from 'react-native';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -24,11 +25,15 @@ import CategoryProducts from './src/components/CategoryProducts';
 import ProfileScreen from './src/components/ProfileScreen';
 import CartScreen from './src/components/CartScreen';
 import PaymentsScreen from './src/components/PaymentsScreen';
+import LoginScreen from './src/components/LoginScreen';
+import SignupScreen from './src/components/SignupScreen';
+import NotFoundScreen from './src/components/NotFoundScreen';
+import { getAuthToken } from './src/services/authentication.service';
 
 const { width } = Dimensions.get('window');
 
 // Simple Navigation Context
-export type Screen = 'HOME' | 'CATEGORY_PRODUCTS' | 'CATEGORIES' | 'ORDERS' | 'CART' | 'PROFILE' | 'PAYMENTS';
+export type Screen = 'HOME' | 'CATEGORY_PRODUCTS' | 'CATEGORIES' | 'ORDERS' | 'CART' | 'PROFILE' | 'PAYMENTS' | 'LOGIN' | 'SIGNUP' | 'NOT_FOUND';
 interface NavigationContextType {
   currentScreen: Screen;
   categoryData: any;
@@ -45,7 +50,26 @@ export const useAppNavigation = () => {
 function App() {
   const [currentScreen, setCurrentScreen] = useState<Screen>('HOME');
   const [categoryData, setCategoryData] = useState<any>(null);
+  const [isLoadingAuth, setIsLoadingAuth] = useState(true);
   const fadeAnim = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    const checkAuthStatus = async () => {
+      try {
+        const token = await getAuthToken();
+        if (!token) {
+          setCurrentScreen('LOGIN');
+        } else {
+          setCurrentScreen('HOME');
+        }
+      } catch (error) {
+        setCurrentScreen('LOGIN');
+      } finally {
+        setIsLoadingAuth(false);
+      }
+    };
+    checkAuthStatus();
+  }, []);
 
   const navigate = (screen: Screen, data?: any) => {
     // Smooth transition
@@ -64,6 +88,14 @@ function App() {
       }).start();
     });
   };
+
+  if (isLoadingAuth) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff' }}>
+        <ActivityIndicator size="large" color="#2E7D32" />
+      </View>
+    );
+  }
 
   return (
     <NavigationContext.Provider value={{ currentScreen, categoryData, navigate }}>
@@ -128,10 +160,18 @@ function AppContent({ fadeAnim }: { fadeAnim: Animated.Value }) {
         return <CartScreen />;
       case 'PAYMENTS':
         return <PaymentsScreen />;
+      case 'LOGIN':
+        return <LoginScreen />;
+      case 'SIGNUP':
+        return <SignupScreen />;
+      case 'NOT_FOUND':
+        return <NotFoundScreen />;
       default:
-        return null;
+        return <NotFoundScreen />;
     }
   };
+
+  const showNavAndHeader = !['LOGIN', 'SIGNUP', 'NOT_FOUND'].includes(currentScreen);
 
   return (
     <View style={[styles.container, { paddingTop: safeAreaInsets.top }]}>
@@ -144,27 +184,29 @@ function AppContent({ fadeAnim }: { fadeAnim: Animated.Value }) {
       </Animated.View>
 
       {/* Sticky Bottom Nav with Icons and Labels */}
-      <View style={[styles.bottomNav, { paddingBottom: safeAreaInsets.bottom || 15 }]}>
-        <TouchableOpacity onPress={() => navigate('HOME')} style={styles.navItem}>
-          <Text style={[styles.navIcon, currentScreen === 'HOME' && styles.navActiveText]}>🏠</Text>
-          <Text style={[styles.navLabel, currentScreen === 'HOME' && styles.navActiveText]}>Home</Text>
-        </TouchableOpacity>
-        
-        <TouchableOpacity onPress={() => navigate('CATEGORIES')} style={styles.navItem}>
-          <Text style={[styles.navIcon, currentScreen === 'CATEGORIES' && styles.navActiveText]}>🔳</Text>
-          <Text style={[styles.navLabel, currentScreen === 'CATEGORIES' && styles.navActiveText]}>Categories</Text>
-        </TouchableOpacity>
+      {showNavAndHeader && (
+        <View style={[styles.bottomNav, { paddingBottom: safeAreaInsets.bottom || 15 }]}>
+          <TouchableOpacity onPress={() => navigate('HOME')} style={styles.navItem}>
+            <Text style={[styles.navIcon, currentScreen === 'HOME' && styles.navActiveText]}>🏠</Text>
+            <Text style={[styles.navLabel, currentScreen === 'HOME' && styles.navActiveText]}>Home</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity onPress={() => navigate('CATEGORIES')} style={styles.navItem}>
+            <Text style={[styles.navIcon, currentScreen === 'CATEGORIES' && styles.navActiveText]}>🔳</Text>
+            <Text style={[styles.navLabel, currentScreen === 'CATEGORIES' && styles.navActiveText]}>Categories</Text>
+          </TouchableOpacity>
 
-        <TouchableOpacity onPress={() => navigate('ORDERS')} style={styles.navItem}>
-          <Text style={[styles.navIcon, currentScreen === 'ORDERS' && styles.navActiveText]}>🔄</Text>
-          <Text style={[styles.navLabel, currentScreen === 'ORDERS' && styles.navActiveText]}>Order Again</Text>
-        </TouchableOpacity>
+          <TouchableOpacity onPress={() => navigate('ORDERS')} style={styles.navItem}>
+            <Text style={[styles.navIcon, currentScreen === 'ORDERS' && styles.navActiveText]}>🔄</Text>
+            <Text style={[styles.navLabel, currentScreen === 'ORDERS' && styles.navActiveText]}>Order Again</Text>
+          </TouchableOpacity>
 
-        <TouchableOpacity onPress={() => navigate('CART')} style={styles.navItem}>
-          <Text style={[styles.navIcon, currentScreen === 'CART' && styles.navActiveText]}>🛒</Text>
-          <Text style={[styles.navLabel, currentScreen === 'CART' && styles.navActiveText]}>Cart</Text>
-        </TouchableOpacity>
-      </View>
+          <TouchableOpacity onPress={() => navigate('CART')} style={styles.navItem}>
+            <Text style={[styles.navIcon, currentScreen === 'CART' && styles.navActiveText]}>🛒</Text>
+            <Text style={[styles.navLabel, currentScreen === 'CART' && styles.navActiveText]}>Cart</Text>
+          </TouchableOpacity>
+        </View>
+      )}
     </View>
   );
 }

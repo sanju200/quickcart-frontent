@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   StyleSheet,
   View,
@@ -7,10 +7,10 @@ import {
   Image,
   FlatList,
   Dimensions,
+  ActivityIndicator
 } from 'react-native';
 import { useAppNavigation } from '../../App';
-
-const { width, height } = Dimensions.get('window');
+import { getAllProducts, Product } from '../services/product.service';
 
 const SIDEBAR_CATEGORIES = [
   { id: 'all', title: 'All', icon: '🌟' },
@@ -22,41 +22,33 @@ const SIDEBAR_CATEGORIES = [
   { id: 'frozen', title: 'Frozen', icon: '🍜' },
 ];
 
-const MOCK_PRODUCTS = [
-  // Fruits
-  { id: 'f1', category: 'fruits', name: 'Organic Banana', price: '₹60', weight: '500g', image: 'https://images.unsplash.com/photo-1571771894821-ad996211fdf4?w=200&q=80' },
-  { id: 'f2', category: 'fruits', name: 'Red Apple', price: '₹120', weight: '500g', image: 'https://images.unsplash.com/photo-1560806887-1e4cd0b6cbd6?w=200&q=80' },
-  { id: 'f3', category: 'fruits', name: 'Alphonso Mango', price: '₹250', weight: '1kg', image: 'https://images.unsplash.com/photo-1553279768-865429fa0078?w=200&q=80' },
-  { id: 'f4', category: 'fruits', name: 'Green Grapes', price: '₹90', weight: '500g', image: 'https://images.unsplash.com/photo-1537640538966-79f369b41e8f?w=200&q=80' },
-  { id: 'f5', category: 'fruits', name: 'Fresh Kiwi', price: '₹140', weight: '3 units', image: 'https://images.unsplash.com/photo-1585059895524-72359e061381?w=200&q=80' },
-  // Veggies
-  { id: 'v1', category: 'veggies', name: 'Fresh Spinach', price: '₹40', weight: '250g', image: 'https://images.unsplash.com/photo-1576045057995-568f588f82fb?w=200&q=80' },
-  { id: 'v2', category: 'veggies', name: 'Broccoli', price: '₹80', weight: '1 unit', image: 'https://images.unsplash.com/photo-1453306458620-5bbef13a5bca?w=200&q=80' },
-  { id: 'v3', category: 'veggies', name: 'Baby Carrots', price: '₹50', weight: '200g', image: 'https://images.unsplash.com/photo-1522184216316-3c25379f9760?w=200&q=80' },
-  { id: 'v4', category: 'veggies', name: 'Potato', price: '₹30', weight: '1kg', image: 'https://images.unsplash.com/photo-1518977676601-b53f02ac6d31?w=200&q=80' },
-  { id: 'v5', category: 'veggies', name: 'Tomato', price: '₹45', weight: '500g', image: 'https://images.unsplash.com/photo-1546473144-c24555107d64?w=200&q=80' },
-  // Dairy
-  { id: 'd1', category: 'dairy', name: 'Fresh Milk', price: '₹35', weight: '500ml', image: 'https://images.unsplash.com/photo-1563636619-e910f01859ec?w=200&q=80' },
-  { id: 'd2', category: 'dairy', name: 'Amul Butter', price: '₹55', weight: '100g', image: 'https://images.unsplash.com/photo-1589985270826-4b7bb135bc9d?w=200&q=80' },
-  { id: 'd3', category: 'dairy', name: 'Cheese Slices', price: '₹120', weight: '200g', image: 'https://images.unsplash.com/photo-1528283228102-587dad4d6ca2?w=200&q=80' },
-  { id: 'd4', category: 'dairy', name: 'Curd/Dahi', price: '₹40', weight: '400g', image: 'https://images.unsplash.com/photo-1485921325833-316270034a78?w=200&q=80' },
-  // Snacks
-  { id: 's1', category: 'snacks', name: 'Lays Chips', price: '₹20', weight: '50g', image: 'https://images.unsplash.com/photo-1566478989125-5134764831ad?w=200&q=80' },
-  { id: 's2', category: 'snacks', name: 'Dark Chocolate', price: '₹80', weight: '100g', image: 'https://images.unsplash.com/photo-1511381939415-e44015466834?w=200&q=80' },
-  { id: 's3', category: 'snacks', name: 'Nachos', price: '₹45', weight: '60g', image: 'https://images.unsplash.com/photo-1513456852971-30c0b8199d4d?w=200&q=80' },
-  // Drinks
-  { id: 'b1', category: 'beverages', name: 'Orange Juice', price: '₹70', weight: '1L', image: 'https://images.unsplash.com/photo-1621506289937-a8e4df240d0b?w=200&q=80' },
-  { id: 'b2', category: 'beverages', name: 'Coca Cola', price: '₹40', weight: '600ml', image: 'https://images.unsplash.com/photo-1622483767028-3f66f32aef97?w=200&q=80' },
-  { id: 'b3', category: 'beverages', name: 'Iced Coffee', price: '₹150', weight: '250ml', image: 'https://images.unsplash.com/photo-1517701604599-bb29b565090c?w=200&q=80' },
-];
-
 const CategoryProducts = () => {
   const { categoryData, navigate } = useAppNavigation();
   const [selectedSideCategory, setSelectedSideCategory] = useState(categoryData?.category || 'all');
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetchProducts();
+  }, []);
+
+  const fetchProducts = async () => {
+    try {
+      setLoading(true);
+      const data = await getAllProducts();
+      setProducts(data);
+      setError(null);
+    } catch (err: any) {
+      setError(err.message || 'Failed to load products');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const filteredProducts = selectedSideCategory === 'all' 
-    ? MOCK_PRODUCTS 
-    : MOCK_PRODUCTS.filter(p => p.category === selectedSideCategory);
+    ? products 
+    : products.filter(p => p.category.toLowerCase() === selectedSideCategory.toLowerCase());
 
   return (
     <View style={styles.container}>
@@ -100,28 +92,49 @@ const CategoryProducts = () => {
 
         {/* Product Grid */}
         <View style={styles.productContent}>
-          <FlatList
-            data={filteredProducts}
-            numColumns={2}
-            keyExtractor={(item) => item.id}
-            contentContainerStyle={styles.listContent}
-            showsVerticalScrollIndicator={false}
-            renderItem={({ item }) => (
-              <View style={styles.productCard}>
-                <Image source={{ uri: item.image }} style={styles.productImage} />
-                <View style={styles.productInfo}>
-                  <Text style={styles.productName} numberOfLines={2}>{item.name}</Text>
-                  <Text style={styles.productWeight}>{item.weight}</Text>
-                  <View style={styles.priceRow}>
-                    <Text style={styles.productPrice}>{item.price}</Text>
-                    <TouchableOpacity style={styles.addButton}>
-                      <Text style={styles.addText}>ADD</Text>
-                    </TouchableOpacity>
+          {loading ? (
+            <View style={styles.centerContainer}>
+              <ActivityIndicator size="large" color="#2E7D32" />
+              <Text style={styles.loadingText}>Loading products...</Text>
+            </View>
+          ) : error ? (
+            <View style={styles.centerContainer}>
+              <Text style={styles.errorText}>{error}</Text>
+              <TouchableOpacity style={styles.retryButton} onPress={fetchProducts}>
+                <Text style={styles.retryText}>Retry</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <FlatList
+              data={filteredProducts}
+              numColumns={2}
+              keyExtractor={(item) => item.id.toString()}
+              contentContainerStyle={styles.listContent}
+              showsVerticalScrollIndicator={false}
+              ListEmptyComponent={
+                <View style={styles.centerContainer}>
+                  <Text style={styles.emptyText}>No products found in this category</Text>
+                </View>
+              }
+              renderItem={({ item }) => (
+                <View style={styles.productCard}>
+                  <Image source={{ uri: item.image }} style={styles.productImage} />
+                  <View style={styles.productInfo}>
+                    <Text style={styles.productName} numberOfLines={2}>{item.name}</Text>
+                    <Text style={styles.productWeight}>{item.weight}</Text>
+                    <View style={styles.priceRow}>
+                      <Text style={styles.productPrice}>
+                        {typeof item.price === 'number' ? `₹${item.price}` : item.price}
+                      </Text>
+                      <TouchableOpacity style={styles.addButton}>
+                        <Text style={styles.addText}>ADD</Text>
+                      </TouchableOpacity>
+                    </View>
                   </View>
                 </View>
-              </View>
-            )}
-          />
+              )}
+            />
+          )}
         </View>
       </View>
     </View>
@@ -275,6 +288,39 @@ const styles = StyleSheet.create({
     color: '#2E7D32',
     fontSize: 11,
     fontWeight: 'bold',
+  },
+  centerContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  loadingText: {
+    marginTop: 10,
+    color: '#666',
+    fontSize: 14,
+  },
+  errorText: {
+    color: '#d32f2f',
+    textAlign: 'center',
+    marginBottom: 15,
+    fontSize: 14,
+  },
+  retryButton: {
+    backgroundColor: '#2E7D32',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 8,
+  },
+  retryText: {
+    color: '#fff',
+    fontWeight: 'bold',
+  },
+  emptyText: {
+    color: '#999',
+    fontSize: 14,
+    textAlign: 'center',
+    marginTop: 50,
   },
 });
 

@@ -1,13 +1,14 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   StyleSheet,
   View,
   Text,
   ScrollView,
   TouchableOpacity,
-  Image,
+  ActivityIndicator,
 } from 'react-native';
 import { useAppNavigation } from '../../App';
+import { logoutUser, getUserData, UserData } from '../services/authentication.service';
 
 const PROFILE_OPTIONS = [
   { id: '1', title: 'Order History', icon: '📦', subtitle: 'View your past orders' },
@@ -16,11 +17,23 @@ const PROFILE_OPTIONS = [
   { id: '4', title: 'Contact Details', icon: '📞', subtitle: 'Update your email and phone' },
   { id: '5', title: 'Payment Methods', icon: '💳', subtitle: 'Saved cards and wallets' },
   { id: '6', title: 'Settings', icon: '⚙️', subtitle: 'App preferences and notifications' },
-  { id: '7', title: 'Log out', icon: '🚪', subtitle: 'Logout from the app' },
 ];
 
 const ProfileScreen = () => {
   const { navigate } = useAppNavigation();
+  const [user, setUser] = useState<UserData | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadUserData = async () => {
+      const data = await getUserData();
+      setUser(data);
+      setLoading(false);
+    };
+    loadUserData();
+  }, []);
+
+  const getInitial = (name: string) => name.charAt(0).toUpperCase();
 
   return (
     <View style={styles.container}>
@@ -36,20 +49,27 @@ const ProfileScreen = () => {
         contentContainerStyle={styles.scrollContent}
       >
         {/* User Card */}
-        <View style={styles.userCard}>
-          <Image 
-            source={{ uri: 'https://i.pravatar.cc/150?u=sanjivani' }} 
-            style={styles.avatar} 
-          />
-          <View style={styles.userInfo}>
-            <Text style={styles.userName}>Sanjivani Bhongade</Text>
-            <Text style={styles.userEmail}>sanjivani@example.com</Text>
-            <Text style={styles.userPhone}>+91 9876543210</Text>
+        {loading ? (
+          <View style={[styles.userCard, { justifyContent: 'center' }]}>
+            <ActivityIndicator size="small" color="#2E7D32" />
           </View>
-          <TouchableOpacity style={styles.editBtn}>
-            <Text style={styles.editBtnText}>Edit</Text>
-          </TouchableOpacity>
-        </View>
+        ) : (
+          <View style={styles.userCard}>
+            <View style={styles.avatarFallback}>
+              <Text style={styles.avatarInitial}>
+                {user?.name ? getInitial(user.name) : '?'}
+              </Text>
+            </View>
+            <View style={styles.userInfo}>
+              <Text style={styles.userName}>{user?.name || 'User'}</Text>
+              <Text style={styles.userEmail}>{user?.email || 'No email'}</Text>
+              {user?.phone ? <Text style={styles.userPhone}>{user.phone}</Text> : null}
+            </View>
+            <TouchableOpacity style={styles.editBtn}>
+              <Text style={styles.editBtnText}>Edit</Text>
+            </TouchableOpacity>
+          </View>
+        )}
 
         {/* Options List */}
         <View style={styles.optionsContainer}>
@@ -68,7 +88,10 @@ const ProfileScreen = () => {
         </View>
 
         {/* Logout Button */}
-        <TouchableOpacity style={styles.logoutBtn} onPress={() => navigate('HOME')}>
+        <TouchableOpacity style={styles.logoutBtn} onPress={async () => {
+          await logoutUser();
+          navigate('LOGIN');
+        }}>
           <Text style={styles.logoutBtnText}>Logout</Text>
         </TouchableOpacity>
 
@@ -123,12 +146,18 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.05,
     shadowRadius: 5,
   },
-  avatar: {
+  avatarFallback: {
     width: 60,
     height: 60,
     borderRadius: 30,
-    borderWidth: 3,
-    borderColor: '#E8F5E9',
+    backgroundColor: '#2E7D32',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  avatarInitial: {
+    fontSize: 26,
+    fontWeight: 'bold',
+    color: '#fff',
   },
   userInfo: {
     flex: 1,
