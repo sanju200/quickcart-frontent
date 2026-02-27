@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   StyleSheet,
   View,
@@ -6,32 +6,37 @@ import {
   ScrollView,
   TouchableOpacity,
   Image,
+  ActivityIndicator,
 } from 'react-native';
-import { useAppNavigation } from '../../App';
-
-
-const MOCK_CART_ITEMS = [
-  { id: 'c1', name: 'Fresh Spinach', price: 40, weight: '250g', quantity: 2, image: 'https://images.unsplash.com/photo-1576045057995-568f588f82fb?w=200&q=80' },
-  { id: 'c2', name: 'Organic Banana', price: 60, weight: '500g', quantity: 1, image: 'https://images.unsplash.com/photo-1571771894821-ad996211fdf4?w=200&q=80' },
-  { id: 'c3', name: 'Red Apple', price: 120, weight: '500g', quantity: 1, image: 'https://images.unsplash.com/photo-1560806887-1e4cd0b6cbd6?w=200&q=80' },
-];
+import { useAppNavigation, useCartCount } from '../context/AppContext';
+import { getCart, handleCartQuantityChange, CartItem } from '../services/cart.service';
 
 const CartScreen = () => {
   const { navigate } = useAppNavigation();
-  const [items, setItems] = useState(MOCK_CART_ITEMS);
+  const { cartItems: items, refreshCartCount } = useCartCount();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const updateQuantity = (id: string, delta: number) => {
-    setItems(prevItems => 
-      prevItems.map(item => 
-        item.id === id 
-          ? { ...item, quantity: Math.max(0, item.quantity + delta) } 
-          : item
-      ).filter(item => item.quantity > 0)
-    );
+  useEffect(() => {
+    refreshCartCount();
+  }, []);
+
+  const handleUpdateQuantity = async (productId: string, currentQty: number, delta: number) => {
+    try {
+      await handleCartQuantityChange(productId, currentQty + delta);
+      await refreshCartCount(); // Sync global count and items
+    } catch (err: any) {
+      console.error('Error updating cart:', err);
+    }
   };
 
   const calculateSubtotal = () => {
-    return items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    return items.reduce((sum, item) => {
+        const price = typeof item.product?.price === 'string' 
+            ? parseFloat(item.product.price.replace(/[^\d.]/g, '')) 
+            : typeof item.product?.price === 'number' ? item.product.price : 0;
+        return sum + (price * item.quantity);
+    }, 0);
   };
 
   const deliveryFee = 25;
@@ -52,7 +57,18 @@ const CartScreen = () => {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        {items.length > 0 ? (
+        {loading ? (
+          <View style={styles.centerContainer}>
+            <ActivityIndicator size="large" color="#2E7D32" />
+          </View>
+        ) : error ? (
+          <View style={styles.centerContainer}>
+            <Text style={styles.errorText}>{error}</Text>
+            <TouchableOpacity style={styles.retryBtn} onPress={() => refreshCartCount()}>
+              <Text style={styles.retryText}>Retry</Text>
+            </TouchableOpacity>
+          </View>
+        ) : items.length > 0 ? (
           <>
             {/* Delivery Time Banner */}
             <View style={styles.deliveryBanner}>
@@ -64,23 +80,23 @@ const CartScreen = () => {
             <View style={styles.itemsContainer}>
               {items.map((item) => (
                 <View key={item.id} style={styles.cartItem}>
-                  <Image source={{ uri: item.image }} style={styles.itemImage} />
+                  <Image source={{ uri: item.product?.image || 'https://via.placeholder.com/60' }} style={styles.itemImage} />
                   <View style={styles.itemInfo}>
-                    <Text style={styles.itemName}>{item.name}</Text>
-                    <Text style={styles.itemWeight}>{item.weight}</Text>
-                    <Text style={styles.itemPrice}>₹{item.price}</Text>
+                    <Text style={styles.itemName}>{item.product?.name || 'Unknown Product'}</Text>
+                    <Text style={styles.itemWeight}>{item.product?.weight}</Text>
+                    <Text style={styles.itemPrice}>₹{item.product?.price}</Text>
                   </View>
                   <View style={styles.quantityControl}>
                     <TouchableOpacity 
                       style={styles.qtyBtn} 
-                      onPress={() => updateQuantity(item.id, -1)}
+                      onPress={() => handleUpdateQuantity(item.productId || item.product?.id || '', item.quantity, -1)}
                     >
                       <Text style={styles.qtyBtnText}>−</Text>
                     </TouchableOpacity>
                     <Text style={styles.qtyText}>{item.quantity}</Text>
                     <TouchableOpacity 
                       style={styles.qtyBtn} 
-                      onPress={() => updateQuantity(item.id, 1)}
+                      onPress={() => handleUpdateQuantity(item.productId || item.product?.id || '', item.quantity, 1)}
                     >
                       <Text style={styles.qtyBtnText}>+</Text>
                     </TouchableOpacity>
@@ -134,7 +150,7 @@ const CartScreen = () => {
         <View style={styles.checkoutBar}>
           <TouchableOpacity 
             style={styles.paymentMethodSection} 
-            onPress={() => navigate('PAYMENTS')}
+            onPress={() => navigate('PAYMENTS', { items: items, total: total })}
           >
             <View style={styles.paymentInfo}>
               <Text style={styles.checkoutTotal}>₹{total}</Text>
@@ -144,7 +160,7 @@ const CartScreen = () => {
               </View>
             </View>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.payBtn} onPress={() => navigate('PAYMENTS')}>
+          <TouchableOpacity style={styles.payBtn} onPress={() => navigate('PAYMENTS', { items: items, total: total })}>
             <Text style={styles.payBtnText}>Proceed to Pay →</Text>
           </TouchableOpacity>
         </View>
@@ -392,6 +408,26 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     fontSize: 16,
   },
+  centerContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      paddingTop: 100,
+  },
+  errorText: {
+      color: '#d32f2f',
+      marginBottom: 10,
+  },
+  retryBtn: {
+      backgroundColor: '#2E7D32',
+      paddingHorizontal: 20,
+      paddingVertical: 10,
+      borderRadius: 8,
+  },
+  retryText: {
+      color: '#fff',
+      fontWeight: 'bold',
+  }
 });
 
 export default CartScreen;
