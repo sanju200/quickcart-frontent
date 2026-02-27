@@ -7,7 +7,7 @@ import {
   TouchableOpacity,
   ActivityIndicator,
 } from 'react-native';
-import { useAppNavigation } from '../../App';
+import { useAppNavigation } from '../context/AppContext';
 import { logoutUser, getUserData, UserData } from '../services/authentication.service';
 
 const PROFILE_OPTIONS = [
@@ -74,7 +74,15 @@ const ProfileScreen = () => {
         {/* Options List */}
         <View style={styles.optionsContainer}>
           {PROFILE_OPTIONS.map((item) => (
-            <TouchableOpacity key={item.id} style={styles.optionItem}>
+            <TouchableOpacity 
+              key={item.id} 
+              style={styles.optionItem}
+              onPress={() => {
+                if (item.title === 'Order History') {
+                  navigate('ORDERS');
+                }
+              }}
+            >
               <View style={styles.optionIconBox}>
                 <Text style={styles.optionIcon}>{item.icon}</Text>
               </View>

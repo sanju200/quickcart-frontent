@@ -8,11 +8,12 @@ import {
   Image,
 } from 'react-native';
 
-import { useAppNavigation } from '../../App';
+import { useAppNavigation, useCartCount } from '../context/AppContext';
 import { getUserData, UserData } from '../services/authentication.service';
 
 const Header = () => {
   const { navigate } = useAppNavigation();
+  const { cartCount } = useCartCount();
   const [user, setUser] = useState<UserData | null>(null);
 
   useEffect(() => {
@@ -54,9 +55,11 @@ const Header = () => {
         <TouchableOpacity style={styles.cartButton} onPress={() => navigate('CART')}>
           <View style={styles.cartIconWrapper}>
             <Text style={styles.cartIcon}>🛒</Text>
-            <View style={styles.cartBadge}>
-              <Text style={styles.cartBadgeText}>3</Text>
-            </View>
+            {cartCount > 0 && (
+              <View style={styles.cartBadge}>
+                <Text style={styles.cartBadgeText}>{cartCount}</Text>
+              </View>
+            )}
           </View>
         </TouchableOpacity>
       </View>

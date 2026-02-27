@@ -8,9 +8,11 @@ import {
   Image,
   ActivityIndicator,
 } from 'react-native';
-import { useAppNavigation } from '../../App';
+import { useAppNavigation, useCartCount } from '../context/AppContext';
 import { getAllProducts, Product } from '../services/product.service';
+import { addToCart } from '../services/cart.service';
 import { useEffect } from 'react';
+import { Alert } from 'react-native';
 
 const CATEGORY_TABS = [
   { id: '1', title: 'All Products', icon: '🏠' },
@@ -32,12 +34,10 @@ const CATEGORY_GRID = [
   { id: 'g6', category: 'beverages', title: 'Tea, Coffee & Health', icon: '☕', bgColor: '#EFEBE9' },
 ];
 
-// Removed POPULAR_ITEMS mock
-
-
 const Categories = () => {
   const [activeTab, setActiveTab ] = useState('1');
   const { navigate } = useAppNavigation();
+  const { refreshCartCount } = useCartCount();
   const [recentlyOrdered, setRecentlyOrdered] = useState<Product[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -45,6 +45,15 @@ const Categories = () => {
   const fetchRecentlyOrdered = async () => {
     // API integration will be done later by the user
     setLoading(false);
+  };
+
+  const handleAddToCart = async (product: Product) => {
+      try {
+          await addToCart(product.id, 1);
+          refreshCartCount(); // Update global count
+      } catch (err: any) {
+          Alert.alert('Error', err.message || 'Failed to add item to cart');
+      }
   };
 
   useEffect(() => {
@@ -113,7 +122,7 @@ const Categories = () => {
 
       {/* Recently Ordered Section */}
       <View style={styles.popularHeader}>
-        <Text style={styles.popularTitle}>� Recently Ordered</Text>
+        <Text style={styles.popularTitle}>🕒 Recently Ordered</Text>
         <TouchableOpacity onPress={() => navigate('ORDERS')}>
           <Text style={styles.seeAll}>View All</Text>
         </TouchableOpacity>
@@ -141,7 +150,10 @@ const Categories = () => {
                 <Text style={styles.productPrice}>
                   {typeof item.price === 'number' ? `₹${item.price}` : item.price}
                 </Text>
-                <TouchableOpacity style={styles.addButton}>
+                <TouchableOpacity 
+                  style={styles.addButton}
+                  onPress={() => handleAddToCart(item)}
+                >
                   <Text style={styles.addText}>ADD</Text>
                 </TouchableOpacity>
               </View>

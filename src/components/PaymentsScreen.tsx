@@ -6,8 +6,12 @@ import {
   ScrollView,
   TouchableOpacity,
   Image,
+  ActivityIndicator,
 } from 'react-native';
-import { useAppNavigation } from '../../App';
+import { useAppNavigation, useCartCount } from '../context/AppContext';
+import { getUserData } from '../services/authentication.service';
+import { createOrder } from '../services/order.service';
+import { clearCart } from '../services/cart.service';
 
 const UPI_METHODS = [
   { id: 'gpay', name: 'Google Pay', icon: 'https://cdn-icons-png.flaticon.com/512/2991/2991148.png' },
@@ -25,8 +29,67 @@ const OTHER_METHODS = [
 ];
 
 const PaymentsScreen = () => {
-  const { navigate } = useAppNavigation();
+  const { navigate, categoryData, showToast } = useAppNavigation();
+  const { refreshCartCount, resetCart } = useCartCount();
   const [selectedMethod, setSelectedMethod] = useState('gpay');
+  const [loading, setLoading] = useState(false);
+
+  const cartItems = categoryData?.items || [];
+  const totalAmount = categoryData?.total || 0;
+
+  const handleProceedToPay = async () => {
+    try {
+      setLoading(true);
+      
+      // 1. Prepare Order Data
+      const user = await getUserData();
+      if (!user) throw new Error('User not found');
+
+      const orderData = {
+        userId: user.id,
+        userName: user.name,
+        userEmail: user.email,
+        userPhone: user.phone || 'N/A',
+        address: user.addresses || 'Address not provided', // Fallback to avoid empty string if required
+        totalAmount: totalAmount,
+        items: cartItems.map((item: any) => ({
+          productId: item.productId || item.product?.id,
+          productTitle: item.product?.name || 'Product',
+          productImage: item.product?.image || 'https://via.placeholder.com/60',
+          quantity: item.quantity,
+          price: typeof item.product?.price === 'string' 
+            ? parseFloat(item.product.price.replace(/[^\d.]/g, '')) 
+            : item.product?.price || 0
+        }))
+      };
+
+      // 3. Create Order in Backend
+      await createOrder(orderData);
+
+      // 4. Order created successfully! Reset UI state immediately
+      resetCart();
+
+      // 5. Clear Cart in Backend (only if order were successful)
+      try {
+        await clearCart();
+      } catch (clearError) {
+        console.warn('Failed to clear cart on backend, but order was placed:', clearError);
+      }
+      
+      // 6. Final sync with server to ensure everything is clean
+      await refreshCartCount();
+
+      // 7. Show Notification and Navigate
+      showToast('Order placed successfully!', 'success');
+      navigate('HOME');
+
+    } catch (error: any) {
+      console.error('Payment Error:', error);
+      showToast(error.message || 'Failed to place order', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -110,17 +173,36 @@ const PaymentsScreen = () => {
       {/* Footer Banner */}
       <View style={styles.footer}>
         <View style={styles.priceContainer}>
-          <Text style={styles.priceValue}>₹170</Text>
+          <Text style={styles.priceValue}>₹{totalAmount}</Text>
           <Text style={styles.selectedMethodText}>
             Paying via {
               [...UPI_METHODS, ...CARDS, ...OTHER_METHODS].find(m => m.id === selectedMethod)?.name || 'UPI'
             }
           </Text>
         </View>
-        <TouchableOpacity style={styles.payBtn} onPress={() => navigate('HOME')}>
-          <Text style={styles.payBtnText}>Proceed to Pay</Text>
+        <TouchableOpacity 
+          style={[styles.payBtn, loading && styles.payBtnDisabled]} 
+          onPress={handleProceedToPay}
+          disabled={loading}
+        >
+          {loading ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <Text style={styles.payBtnText}>Proceed to Pay</Text>
+          )}
         </TouchableOpacity>
       </View>
+
+      {/* Full Screen Loader Overlay */}
+      {loading && (
+        <View style={styles.loaderOverlay}>
+          <View style={styles.loaderCard}>
+            <ActivityIndicator size="large" color="#2E7D32" />
+            <Text style={styles.loaderText}>Processing Payment...</Text>
+            <Text style={styles.loaderSubtext}>Please do not close the app or press back</Text>
+          </View>
+        </View>
+      )}
     </View>
   );
 };
@@ -270,6 +352,35 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     fontSize: 16,
   },
+  payBtnDisabled: {
+    backgroundColor: '#9E9E9E',
+  },
+  loaderOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 2000,
+  },
+  loaderCard: {
+    backgroundColor: '#fff',
+    padding: 30,
+    borderRadius: 20,
+    alignItems: 'center',
+    width: '80%',
+  },
+  loaderText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginTop: 20,
+    color: '#000',
+  },
+  loaderSubtext: {
+    fontSize: 12,
+    color: '#666',
+    marginTop: 10,
+    textAlign: 'center',
+  }
 });
 
 export default PaymentsScreen;

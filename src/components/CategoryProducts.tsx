@@ -9,8 +9,10 @@ import {
   Dimensions,
   ActivityIndicator
 } from 'react-native';
-import { useAppNavigation } from '../../App';
+import { useAppNavigation, useCartCount } from '../context/AppContext';
 import { getAllProducts, Product } from '../services/product.service';
+import { addToCart, handleCartQuantityChange, CartItem } from '../services/cart.service';
+import { Alert } from 'react-native';
 
 const SIDEBAR_CATEGORIES = [
   { id: 'all', title: 'All', icon: '🌟' },
@@ -24,6 +26,7 @@ const SIDEBAR_CATEGORIES = [
 
 const CategoryProducts = () => {
   const { categoryData, navigate } = useAppNavigation();
+  const { cartItems, refreshCartCount } = useCartCount();
   const [selectedSideCategory, setSelectedSideCategory] = useState(categoryData?.category || 'all');
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -43,6 +46,30 @@ const CategoryProducts = () => {
       setError(err.message || 'Failed to load products');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const getProductQuantity = (productId: string) => {
+    const item = cartItems.find((i: CartItem) => (i.productId || i.product?.id) === productId);
+    return item ? item.quantity : 0;
+  };
+
+  const handleAddToCart = async (product: Product) => {
+    try {
+      await addToCart(product.id, 1);
+      refreshCartCount();
+    } catch (err: any) {
+      Alert.alert('Error', err.message || 'Failed to add item to cart');
+    }
+  };
+
+  const handleUpdateQuantity = async (productId: string, currentQty: number, delta: number) => {
+    try {
+      await handleCartQuantityChange(productId, currentQty + delta);
+      refreshCartCount();
+    } catch (err: any) {
+      console.error('Error updating cart:', err);
+      Alert.alert('Error', 'Failed to update quantity');
     }
   };
 
@@ -124,11 +151,32 @@ const CategoryProducts = () => {
                     <Text style={styles.productWeight}>{item.weight}</Text>
                     <View style={styles.priceRow}>
                       <Text style={styles.productPrice}>
-                        {typeof item.price === 'number' ? `₹${item.price}` : item.price}
+                        ₹{item.price}
                       </Text>
-                      <TouchableOpacity style={styles.addButton}>
-                        <Text style={styles.addText}>ADD</Text>
-                      </TouchableOpacity>
+                      {getProductQuantity(item.id) > 0 ? (
+                        <View style={styles.quantityControl}>
+                          <TouchableOpacity 
+                            style={styles.qtyBtn}
+                            onPress={() => handleUpdateQuantity(item.id, getProductQuantity(item.id), -1)}
+                          >
+                            <Text style={styles.qtyBtnText}>−</Text>
+                          </TouchableOpacity>
+                          <Text style={styles.qtyText}>{getProductQuantity(item.id)}</Text>
+                          <TouchableOpacity 
+                            style={styles.qtyBtn}
+                            onPress={() => handleUpdateQuantity(item.id, getProductQuantity(item.id), 1)}
+                          >
+                            <Text style={styles.qtyBtnText}>+</Text>
+                          </TouchableOpacity>
+                        </View>
+                      ) : (
+                        <TouchableOpacity 
+                          style={styles.addButton}
+                          onPress={() => handleAddToCart(item)}
+                        >
+                          <Text style={styles.addText}>ADD</Text>
+                        </TouchableOpacity>
+                      )}
                     </View>
                   </View>
                 </View>
@@ -287,6 +335,29 @@ const styles = StyleSheet.create({
   addText: {
     color: '#2E7D32',
     fontSize: 11,
+    fontWeight: 'bold',
+  },
+  quantityControl: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#2E7D32',
+    borderRadius: 6,
+    paddingHorizontal: 5,
+    paddingVertical: 4,
+    minWidth: 70,
+    justifyContent: 'space-between',
+  },
+  qtyBtn: {
+    paddingHorizontal: 5,
+  },
+  qtyBtnText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  qtyText: {
+    color: '#fff',
+    fontSize: 12,
     fontWeight: 'bold',
   },
   centerContainer: {

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
-import { useAppNavigation } from '../../App';
+import { useAppNavigation } from '../context/AppContext';
 import { signupUser, loginUser } from '../services/authentication.service';
 import ToastNotification from './ToastNotification';
 
