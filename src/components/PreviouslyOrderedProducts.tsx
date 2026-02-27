@@ -35,16 +35,17 @@ const PreviouslyOrderedProducts = () => {
       
       orders.forEach((order: Order) => {
         order.items?.forEach((orderItem: OrderItem) => {
-          const productKey = orderItem.productTitle || orderItem.id;
+          const productId = orderItem.productId || orderItem.product?.id;
+          const productKey = productId || orderItem.productTitle || orderItem.id;
           
           if (productKey && !productMap.has(productKey)) {
             const product: Product = {
-              id: orderItem.id,
-              name: orderItem.productTitle || 'Product',
-              price: orderItem.price?.toString() || '0',
-              image: orderItem.productImage || 'https://via.placeholder.com/150',
-              weight: 'Unit',
-              category: 'ordered',
+              id: productId || orderItem.id, // Ensure we use the actual product ID
+              name: orderItem.productTitle || orderItem.product?.name || 'Product',
+              price: (orderItem.priceAtPurchase || orderItem.price || orderItem.product?.price || 0).toString(),
+              image: orderItem.productImage || orderItem.product?.image || 'https://via.placeholder.com/150',
+              weight: orderItem.product?.weight || 'Unit',
+              category: orderItem.product?.category || 'ordered'
             };
             productMap.set(productKey, product);
           }
@@ -76,10 +77,10 @@ const PreviouslyOrderedProducts = () => {
 
   const handleUpdateQuantity = async (productId: string, currentQty: number, delta: number) => {
     try {
-      if (currentQty + delta < 0) return;
       await handleCartQuantityChange(productId, currentQty + delta);
       refreshCartCount();
     } catch (err: any) {
+      console.error('Error updating cart:', err);
       Alert.alert('Error', 'Failed to update quantity');
     }
   };

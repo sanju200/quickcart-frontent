@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { useAppNavigation, useCartCount } from '../context/AppContext';
 import { getAllProducts, Product } from '../services/product.service';
-import { addToCart } from '../services/cart.service';
+import { addToCart, handleCartQuantityChange, CartItem } from '../services/cart.service';
 import { getOrders, Order, OrderItem } from '../services/order.service';
 import { useEffect } from 'react';
 import { Alert } from 'react-native';
@@ -38,10 +38,25 @@ const CATEGORY_GRID = [
 const Categories = () => {
   const [activeTab, setActiveTab ] = useState('1');
   const { navigate } = useAppNavigation();
-  const { refreshCartCount } = useCartCount();
+  const { cartItems, refreshCartCount } = useCartCount();
   const [recentlyOrdered, setRecentlyOrdered] = useState<Product[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const getProductQuantity = (productId: string) => {
+    const item = cartItems.find((i: CartItem) => (i.productId || i.product?.id) === productId);
+    return item ? item.quantity : 0;
+  };
+
+  const handleUpdateQuantity = async (productId: string, currentQty: number, delta: number) => {
+    try {
+      await handleCartQuantityChange(productId, currentQty + delta);
+      refreshCartCount();
+    } catch (err: any) {
+      console.error('Error updating cart:', err);
+      Alert.alert('Error', 'Failed to update quantity');
+    }
+  };
 
   const fetchRecentlyOrdered = async () => {
     try {
@@ -184,12 +199,30 @@ const Categories = () => {
                 <Text style={styles.productPrice}>
                   {typeof item.price === 'number' ? `₹${item.price}` : item.price}
                 </Text>
-                <TouchableOpacity 
-                  style={styles.addButton}
-                  onPress={() => handleAddToCart(item)}
-                >
-                  <Text style={styles.addText}>ADD</Text>
-                </TouchableOpacity>
+                {getProductQuantity(item.id) > 0 ? (
+                  <View style={styles.quantityControl}>
+                    <TouchableOpacity 
+                      style={styles.qtyBtn}
+                      onPress={() => handleUpdateQuantity(item.id, getProductQuantity(item.id), -1)}
+                    >
+                      <Text style={styles.qtyBtnText}>−</Text>
+                    </TouchableOpacity>
+                    <Text style={styles.qtyText}>{getProductQuantity(item.id)}</Text>
+                    <TouchableOpacity 
+                      style={styles.qtyBtn}
+                      onPress={() => handleUpdateQuantity(item.id, getProductQuantity(item.id), 1)}
+                    >
+                      <Text style={styles.qtyBtnText}>+</Text>
+                    </TouchableOpacity>
+                  </View>
+                ) : (
+                  <TouchableOpacity 
+                    style={styles.addButton}
+                    onPress={() => handleAddToCart(item)}
+                  >
+                    <Text style={styles.addText}>ADD</Text>
+                  </TouchableOpacity>
+                )}
               </View>
             </View>
           ))}
@@ -379,6 +412,29 @@ const styles = StyleSheet.create({
   },
   addText: {
     color: '#2E7D32',
+    fontSize: 10,
+    fontWeight: 'bold',
+  },
+  quantityControl: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#2E7D32',
+    borderRadius: 4,
+    paddingHorizontal: 4,
+    paddingVertical: 2,
+    minWidth: 50,
+    justifyContent: 'space-between',
+  },
+  qtyBtn: {
+    paddingHorizontal: 4,
+  },
+  qtyBtnText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  qtyText: {
+    color: '#fff',
     fontSize: 10,
     fontWeight: 'bold',
   },
