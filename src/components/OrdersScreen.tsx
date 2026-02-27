@@ -36,7 +36,7 @@ const OrdersScreen = () => {
   };
 
   const renderOrderItem = ({ item }: { item: Order }) => {
-    const date = new Date(item.createdAt).toLocaleDateString();
+    const date = new Date(item.createdAt || item.created_at || '').toLocaleDateString();
     
     return (
       <View style={styles.orderCard}>

@@ -8,26 +8,33 @@ const ORDERS_STORAGE_KEY = 'quickcart_orders_history';
 
 export interface OrderItem {
     id: string;
-    orderId: string;
-    productId: string;
+    orderId?: string;
+    productId?: string;
+    productTitle: string;
+    productImage: string;
     quantity: number;
-    priceAtPurchase: number;
-    productTitle?: string;
-    productImage?: string;
-    product?: Product; // Populated for UI convenience
+    price: string;
+    totalAmount: string;
+    priceAtPurchase?: number;
+    product?: Product; // Populated for UI convenience if available
 }
 
 export type OrderStatus = 'PLACED' | 'DELIVERED' | 'CANCELLED' | 'PENDING';
 
 export interface Order {
     id: string;
-    userId: string;
-    totalAmount: number;
-    status: OrderStatus;
-    createdAt: string;
-    deliveryAddress: string;
-    items?: OrderItem[];
+    userId?: string;
     userName?: string;
+    userEmail?: string;
+    userPhone?: string;
+    address?: string;
+    totalAmount: string;
+    status: OrderStatus;
+    createdAt?: string;
+    created_at?: string;
+    updated_at?: string;
+    deliveryAddress?: string;
+    items: OrderItem[];
 }
 
 export const getOrders = async (): Promise<Order[]> => {

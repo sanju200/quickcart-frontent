@@ -11,6 +11,7 @@ import {
 import { useAppNavigation, useCartCount } from '../context/AppContext';
 import { getAllProducts, Product } from '../services/product.service';
 import { addToCart } from '../services/cart.service';
+import { getOrders, Order, OrderItem } from '../services/order.service';
 import { useEffect } from 'react';
 import { Alert } from 'react-native';
 
@@ -43,8 +44,41 @@ const Categories = () => {
   const [error, setError] = useState<string | null>(null);
 
   const fetchRecentlyOrdered = async () => {
-    // API integration will be done later by the user
-    setLoading(false);
+    try {
+      setLoading(true);
+      const orders = await getOrders();
+      
+      const productMap = new Map<string, Product>();
+      
+      orders.forEach((order: Order) => {
+        order.items?.forEach((orderItem: OrderItem) => {
+          // Identify product by productId, product object id, or title
+          const productId = orderItem.productId || orderItem.product?.id;
+          const productKey = productId || orderItem.productTitle || orderItem.id;
+          
+          if (productKey && !productMap.has(productKey)) {
+            const product: Product = {
+              id: productId || orderItem.id, // Fallback to item id if productId is missing
+              name: orderItem.productTitle || orderItem.product?.name || 'Product',
+              price: (orderItem.priceAtPurchase || orderItem.price || orderItem.product?.price || 0).toString(),
+              image: orderItem.productImage || orderItem.product?.image || 'https://via.placeholder.com/150',
+              weight: orderItem.product?.weight || 'Unit',
+              category: orderItem.product?.category || 'general'
+            };
+            productMap.set(productKey, product);
+          }
+        });
+      });
+
+      const recentProducts = Array.from(productMap.values());
+      setRecentlyOrdered(recentProducts);
+      setError(null);
+    } catch (err: any) {
+      console.error('Error fetching recently ordered:', err);
+      setRecentlyOrdered([]);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleAddToCart = async (product: Product) => {
@@ -123,7 +157,7 @@ const Categories = () => {
       {/* Recently Ordered Section */}
       <View style={styles.popularHeader}>
         <Text style={styles.popularTitle}>🕒 Recently Ordered</Text>
-        <TouchableOpacity onPress={() => navigate('ORDERS')}>
+        <TouchableOpacity onPress={() => navigate('PREVIOUSLY_ORDERED')}>
           <Text style={styles.seeAll}>View All</Text>
         </TouchableOpacity>
       </View>
@@ -141,7 +175,7 @@ const Categories = () => {
         </View>
       ) : recentlyOrdered.length > 0 ? (
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.popularScroll}>
-          {recentlyOrdered.map((item) => (
+          {recentlyOrdered.slice(0, 6).map((item) => (
             <View key={item.id} style={styles.productCard}>
               <Image source={{ uri: item.image }} style={styles.productImage} />
               <Text style={styles.productName} numberOfLines={2}>{item.name}</Text>
@@ -159,6 +193,17 @@ const Categories = () => {
               </View>
             </View>
           ))}
+          {recentlyOrdered.length >= 6 && (
+            <TouchableOpacity 
+              style={styles.viewAllRecentCard}
+              onPress={() => navigate('PREVIOUSLY_ORDERED')}
+            >
+              <View style={styles.viewAllRecentIconContainer}>
+                <Text style={styles.viewAllRecentIcon}>→</Text>
+              </View>
+              <Text style={styles.viewAllRecentText}>View All Items</Text>
+            </TouchableOpacity>
+          )}
         </ScrollView>
       ) : (
         <View style={styles.emptyRecentContainer}>
@@ -368,6 +413,42 @@ const styles = StyleSheet.create({
   emptyRecentText: {
     color: '#999',
     fontSize: 14,
+  },
+  viewAllRecentCard: {
+    width: 140,
+    backgroundColor: '#F1F8E9',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#2E7D32',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+    marginLeft: 5,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+  },
+  viewAllRecentIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#2E7D32',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  viewAllRecentIcon: {
+    color: '#fff',
+    fontSize: 20,
+    fontWeight: 'bold',
+  },
+  viewAllRecentText: {
+    color: '#2E7D32',
+    fontSize: 14,
+    fontWeight: 'bold',
+    textAlign: 'center',
   },
 });
 

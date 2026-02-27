@@ -1,6 +1,6 @@
 import React, { createContext, useContext } from 'react';
 
-export type Screen = 'HOME' | 'CATEGORY_PRODUCTS' | 'CATEGORIES' | 'ORDERS' | 'CART' | 'PROFILE' | 'PAYMENTS' | 'LOGIN' | 'SIGNUP' | 'NOT_FOUND';
+export type Screen = 'HOME' | 'CATEGORY_PRODUCTS' | 'CATEGORIES' | 'ORDERS' | 'CART' | 'PROFILE' | 'PAYMENTS' | 'LOGIN' | 'SIGNUP' | 'NOT_FOUND' | 'PREVIOUSLY_ORDERED';
 
 interface NavigationContextType {
   currentScreen: Screen;

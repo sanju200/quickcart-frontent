@@ -28,6 +28,7 @@ import CartScreen from './src/components/CartScreen';
 import PaymentsScreen from './src/components/PaymentsScreen';
 import LoginScreen from './src/components/LoginScreen';
 import SignupScreen from './src/components/SignupScreen';
+import PreviouslyOrderedProducts from './src/components/PreviouslyOrderedProducts';
 import NotFoundScreen from './src/components/NotFoundScreen';
 import ToastNotification from './src/components/ToastNotification';
 import { getAuthToken } from './src/services/authentication.service';
@@ -191,6 +192,8 @@ function AppContent({ fadeAnim }: { fadeAnim: Animated.Value }) {
         return <SignupScreen />;
       case 'NOT_FOUND':
         return <NotFoundScreen />;
+      case 'PREVIOUSLY_ORDERED':
+        return <PreviouslyOrderedProducts />;
       default:
         return <NotFoundScreen />;
     }
