@@ -23,35 +23,49 @@ import Features from './src/components/Features';
 import Categories from './src/components/Categories';
 import CategoryProducts from './src/components/CategoryProducts';
 import ProfileScreen from './src/components/ProfileScreen';
+import OrdersScreen from './src/components/OrdersScreen';
 import CartScreen from './src/components/CartScreen';
 import PaymentsScreen from './src/components/PaymentsScreen';
 import LoginScreen from './src/components/LoginScreen';
 import SignupScreen from './src/components/SignupScreen';
 import NotFoundScreen from './src/components/NotFoundScreen';
+import ToastNotification from './src/components/ToastNotification';
 import { getAuthToken } from './src/services/authentication.service';
 
 const { width } = Dimensions.get('window');
 
-// Simple Navigation Context
-export type Screen = 'HOME' | 'CATEGORY_PRODUCTS' | 'CATEGORIES' | 'ORDERS' | 'CART' | 'PROFILE' | 'PAYMENTS' | 'LOGIN' | 'SIGNUP' | 'NOT_FOUND';
-interface NavigationContextType {
-  currentScreen: Screen;
-  categoryData: any;
-  navigate: (screen: Screen, data?: any) => void;
-}
-export const NavigationContext = createContext<NavigationContextType | undefined>(undefined);
-
-export const useAppNavigation = () => {
-  const context = useContext(NavigationContext);
-  if (!context) throw new Error('useAppNavigation must be used within NavigationProvider');
-  return context;
-};
+import { Screen, NavigationContext, CartContext } from './src/context/AppContext';
+import { getCart } from './src/services/cart.service';
 
 function App() {
   const [currentScreen, setCurrentScreen] = useState<Screen>('HOME');
   const [categoryData, setCategoryData] = useState<any>(null);
   const [isLoadingAuth, setIsLoadingAuth] = useState(true);
+  const [cartItems, setCartItems] = useState<any[]>([]);
+  const [cartCount, setCartCount] = useState(0);
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info'; visible: boolean }>({
+    message: '',
+    type: 'success',
+    visible: false,
+  });
   const fadeAnim = useRef(new Animated.Value(1)).current;
+
+  const refreshCartCount = async () => {
+    try {
+      const items = await getCart();
+      setCartItems(items);
+      // count unique items by their product ID to ensure the badge shows total types of items
+      const uniqueItems = new Set(items.map(item => item.productId || item.product?.id || item.id));
+      setCartCount(uniqueItems.size);
+    } catch (error) {
+      console.error('Failed to refresh cart count:', error);
+    }
+  };
+
+  const resetCart = () => {
+    setCartItems([]);
+    setCartCount(0);
+  };
 
   useEffect(() => {
     const checkAuthStatus = async () => {
@@ -61,6 +75,7 @@ function App() {
           setCurrentScreen('LOGIN');
         } else {
           setCurrentScreen('HOME');
+          refreshCartCount(); // Initial count load
         }
       } catch (error) {
         setCurrentScreen('LOGIN');
@@ -81,12 +96,21 @@ function App() {
       setCurrentScreen(screen);
       if (data) setCategoryData(data);
       
+      // Refresh cart count on specific navigations if needed
+      if (screen === 'CART' || screen === 'HOME') {
+        refreshCartCount();
+      }
+
       Animated.timing(fadeAnim, {
         toValue: 1,
         duration: 250,
         useNativeDriver: true,
       }).start();
     });
+  };
+
+  const showToast = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
+    setToast({ message, type, visible: true });
   };
 
   if (isLoadingAuth) {
@@ -98,20 +122,29 @@ function App() {
   }
 
   return (
-    <NavigationContext.Provider value={{ currentScreen, categoryData, navigate }}>
-      <SafeAreaProvider>
-        <StatusBar barStyle="dark-content" backgroundColor="#fff" />
-        <View style={styles.mainWrapper}>
-          <AppContent fadeAnim={fadeAnim} />
-        </View>
-      </SafeAreaProvider>
+    <NavigationContext.Provider value={{ currentScreen, categoryData, navigate, showToast }}>
+      <CartContext.Provider value={{ cartItems, cartCount, refreshCartCount, resetCart }}>
+        <SafeAreaProvider>
+          <StatusBar barStyle="dark-content" backgroundColor="#fff" />
+          <View style={styles.mainWrapper}>
+            <AppContent fadeAnim={fadeAnim} />
+          </View>
+          <ToastNotification
+            message={toast.message}
+            type={toast.type}
+            visible={toast.visible}
+            onHide={() => setToast({ ...toast, visible: false })}
+          />
+        </SafeAreaProvider>
+      </CartContext.Provider>
     </NavigationContext.Provider>
   );
 }
 
 function AppContent({ fadeAnim }: { fadeAnim: Animated.Value }) {
   const safeAreaInsets = useSafeAreaInsets();
-  const { currentScreen, navigate } = useAppNavigation();
+  const { currentScreen, navigate } = useContext(NavigationContext)!;
+  const { cartItems, cartCount, refreshCartCount } = useContext(CartContext)!;
 
   const renderScreen = () => {
     switch (currentScreen) {
@@ -147,15 +180,7 @@ function AppContent({ fadeAnim }: { fadeAnim: Animated.Value }) {
           </View>
         );
       case 'ORDERS':
-        return (
-          <View style={styles.placeholderScreen}>
-            <Text style={styles.placeholderIcon}>🔄</Text>
-            <Text style={styles.placeholderText}>Your Past Orders</Text>
-            <TouchableOpacity onPress={() => navigate('HOME')} style={styles.backBtn}>
-              <Text style={styles.backBtnText}>Fast Order Now</Text>
-            </TouchableOpacity>
-          </View>
-        );
+        return <OrdersScreen />;
       case 'CART':
         return <CartScreen />;
       case 'PAYMENTS':
@@ -202,7 +227,14 @@ function AppContent({ fadeAnim }: { fadeAnim: Animated.Value }) {
           </TouchableOpacity>
 
           <TouchableOpacity onPress={() => navigate('CART')} style={styles.navItem}>
-            <Text style={[styles.navIcon, currentScreen === 'CART' && styles.navActiveText]}>🛒</Text>
+            <View>
+              <Text style={[styles.navIcon, currentScreen === 'CART' && styles.navActiveText]}>🛒</Text>
+              {cartCount > 0 && (
+                <View style={styles.badge}>
+                  <Text style={styles.badgeText}>{cartCount}</Text>
+                </View>
+              )}
+            </View>
             <Text style={[styles.navLabel, currentScreen === 'CART' && styles.navActiveText]}>Cart</Text>
           </TouchableOpacity>
         </View>
@@ -268,6 +300,24 @@ const styles = StyleSheet.create({
   },
   navActiveText: {
     color: '#2E7D32',
+  },
+  badge: {
+    position: 'absolute',
+    right: -10,
+    top: -5,
+    backgroundColor: '#E53935',
+    borderRadius: 9,
+    width: 18,
+    height: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: '#fff',
+  },
+  badgeText: {
+    color: '#fff',
+    fontSize: 10,
+    fontWeight: 'bold',
   },
   placeholderScreen: {
     flex: 1,

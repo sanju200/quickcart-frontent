@@ -7,9 +7,11 @@ const BASE_URL = Platform.OS === 'android' ? 'http://10.0.2.2:3000' : 'http://lo
 const API_URL = `${BASE_URL}/auth`;
 
 export interface UserData {
+    id: string;
     name: string;
     email: string;
     phone?: string;
+    addresses?: string;
 }
 
 export const loginUser = async (email: string, password: string) => {
@@ -28,9 +30,11 @@ export const loginUser = async (email: string, password: string) => {
         await AsyncStorage.setItem('authToken', data.access_token || data.token);
         // Store user data from the login response
         const userData: UserData = {
+            id: data.user?.id || data.id || '',
             name: data.user?.name || data.name || email.split('@')[0],
             email: data.user?.email || data.email || email,
             phone: data.user?.phone || data.phone || '',
+            addresses: data.user?.address || data.address || '',
         };
         await saveUserData(userData);
         return data;
