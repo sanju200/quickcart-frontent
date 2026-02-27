@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { useAppNavigation } from '../../App';
+import { useAppNavigation } from '../context/AppContext';
 
 const NotFoundScreen = () => {
   const { navigate } = useAppNavigation();
