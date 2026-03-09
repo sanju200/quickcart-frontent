@@ -64,7 +64,11 @@ const ProfileScreen = () => {
               <Text style={styles.userName}>{user?.name || 'User'}</Text>
               <Text style={styles.userEmail}>{user?.email || 'No email'}</Text>
               {user?.phone ? <Text style={styles.userPhone}>{user.phone}</Text> : null}
-              {user?.addresses ? <Text style={styles.userAddress} numberOfLines={1}>{user.addresses}</Text> : null}
+              {user?.addresses?.find(a => a.isSelected) ? (
+                <Text style={styles.userAddress} numberOfLines={1}>
+                  {user.addresses.find(a => a.isSelected)?.streetAddress}
+                </Text>
+              ) : null}
             </View>
             <TouchableOpacity style={styles.editBtn} onPress={() => navigate('EDIT_PROFILE')}>
               <Text style={styles.editBtnText}>Edit</Text>
@@ -81,6 +85,8 @@ const ProfileScreen = () => {
               onPress={() => {
                 if (item.title === 'Order History') {
                   navigate('ORDERS');
+                } else if (item.title === 'Saved Addresses') {
+                  navigate('SAVED_ADDRESSES');
                 }
               }}
             >

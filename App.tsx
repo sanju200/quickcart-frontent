@@ -29,6 +29,7 @@ import PaymentsScreen from './src/components/PaymentsScreen';
 import LoginScreen from './src/components/LoginScreen';
 import SignupScreen from './src/components/SignupScreen';
 import EditProfileScreen from './src/components/EditProfileScreen';
+import SavedAddressesScreen from './src/components/SavedAddressesScreen';
 import PreviouslyOrderedProducts from './src/components/PreviouslyOrderedProducts';
 import NotFoundScreen from './src/components/NotFoundScreen';
 import ToastNotification from './src/components/ToastNotification';
@@ -173,7 +174,8 @@ function AppContent({ fadeAnim }: { fadeAnim: Animated.Value }) {
         return <ProfileScreen />;
       case 'EDIT_PROFILE':
         return <EditProfileScreen />;
-
+      case 'SAVED_ADDRESSES':
+        return <SavedAddressesScreen />;
       case 'ORDERS':
         return <OrdersScreen />;
       case 'CART':

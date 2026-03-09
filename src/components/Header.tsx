@@ -12,7 +12,7 @@ import { useAppNavigation, useCartCount } from '../context/AppContext';
 import { getUserData, UserData } from '../services/authentication.service';
 
 const Header = () => {
-  const { navigate } = useAppNavigation();
+  const { navigate, currentScreen } = useAppNavigation();
   const { cartCount } = useCartCount();
   const [user, setUser] = useState<UserData | null>(null);
 
@@ -22,7 +22,8 @@ const Header = () => {
       setUser(data);
     };
     loadUser();
-  }, []);
+  }, [currentScreen]); // Trigger refresh on navigation
+
 
   const getInitial = (name: string) => name.charAt(0).toUpperCase();
 
@@ -48,8 +49,9 @@ const Header = () => {
           <View style={styles.locationContainer}>
             <Text style={styles.locationPin}>📍</Text>
             <Text style={styles.addressText} numberOfLines={1}>
-              {user?.addresses || 'Set Location'} ⌄
+              {user?.addresses?.find(a => a.isSelected)?.streetAddress || 'Set Location'} ⌄
             </Text>
+
           </View>
         </View>
 

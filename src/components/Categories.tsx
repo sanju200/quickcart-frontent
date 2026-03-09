@@ -200,7 +200,7 @@ const Categories = () => {
               <Text style={styles.productWeight}>{item.weight}</Text>
               <View style={styles.priceRow}>
                 <Text style={styles.productPrice}>
-                  {typeof item.price === 'number' ? `₹${item.price}` : item.price}
+                  {`₹${item.price}`}
                 </Text>
                 {getProductQuantity(item.id) > 0 ? (
                   <View style={styles.quantityControl}>

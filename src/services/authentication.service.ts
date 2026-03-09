@@ -6,13 +6,24 @@ import { Platform } from 'react-native';
 const BASE_URL = Platform.OS === 'android' ? 'http://10.0.2.2:3000' : 'http://localhost:3000';
 const API_URL = `${BASE_URL}/auth`;
 
+export interface Address {
+    type: 'Home' | 'Work' | 'Other';
+    streetAddress: string;
+    city: string;
+    state: string;
+    postalCode: string;
+    country: string;
+    isSelected: boolean;
+}
+
 export interface UserData {
     id: string;
     name: string;
     email: string;
     phone?: string;
-    addresses?: string;
+    addresses?: Address[];
 }
+
 
 export const loginUser = async (email: string, password: string) => {
     try {
@@ -29,13 +40,31 @@ export const loginUser = async (email: string, password: string) => {
         }
         await AsyncStorage.setItem('authToken', data.access_token || data.token);
         // Store user data from the login response
+        // Helper to normalize addresses from various formats
+        const normalizeAddresses = (addr: any): Address[] => {
+            if (Array.isArray(addr)) return addr;
+            if (typeof addr === 'string' && addr.trim()) {
+                return [{
+                    type: 'Home',
+                    streetAddress: addr,
+                    city: '',
+                    state: '',
+                    postalCode: '',
+                    country: '',
+                    isSelected: true
+                }];
+            }
+            return [];
+        };
+
         const userData: UserData = {
             id: data.id || data.user?.id || '',
             name: data.name || data.user?.name || email.split('@')[0],
             email: data.email || data.user?.email || email,
             phone: data.phone || data.user?.phone || '',
-            addresses: data.addresses || data.user?.addresses || data.address || data.user?.address || '',
+            addresses: normalizeAddresses(data.addresses || data.user?.addresses || data.address || data.user?.address),
         };
+
 
 
         await saveUserData(userData);
@@ -92,12 +121,74 @@ export const getUserData = async (): Promise<UserData | null> => {
     try {
         const data = await AsyncStorage.getItem('userData');
         const user = data ? JSON.parse(data) : null;
-        if (user && user.address && !user.addresses) {
-            user.addresses = user.address;
+        if (user && typeof user.addresses === 'string') {
+            user.addresses = [{
+                type: 'Home',
+                streetAddress: user.addresses,
+                city: '',
+                state: '',
+                postalCode: '',
+                country: '',
+                isSelected: true
+            }];
         }
         return user;
+
 
     } catch (error) {
         return null;
     }
 };
+
+
+export const updateProfile = async (userData: UserData) => {
+    try {
+        const token = await getAuthToken();
+        const { id, ...updateData } = userData;
+        const response = await fetch(`${BASE_URL}/users/${id}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+            },
+            body: JSON.stringify(updateData),
+        });
+
+        const data = await response.json();
+        if (!response.ok) {
+            throw new Error(data.message || 'Update failed');
+        }
+
+        // Normalize the response data to match UserData interface before saving
+        const normalizeAddresses = (addr: any): Address[] => {
+            if (Array.isArray(addr)) return addr;
+            if (typeof addr === 'string' && addr.trim()) {
+                return [{
+                    type: 'Home',
+                    streetAddress: addr,
+                    city: '',
+                    state: '',
+                    postalCode: '',
+                    country: '',
+                    isSelected: true
+                }];
+            }
+            return userData.addresses || [];
+        };
+
+        const updatedUser: UserData = {
+            id: data.id || userData.id,
+            name: data.name || userData.name,
+            email: data.email || userData.email,
+            phone: data.phone || userData.phone,
+            addresses: normalizeAddresses(data.addresses || data.address),
+        };
+
+
+        await saveUserData(updatedUser);
+        return updatedUser;
+    } catch (error: any) {
+        throw new Error(error.message || 'An error occurred during update');
+    }
+};
+
