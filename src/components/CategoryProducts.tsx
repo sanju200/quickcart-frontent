@@ -22,6 +22,10 @@ const SIDEBAR_CATEGORIES = [
   { id: 'snacks', title: 'Snacks', icon: '🍿' },
   { id: 'beverages', title: 'Drinks', icon: '🥤' },
   { id: 'frozen', title: 'Frozen', icon: '🍜' },
+  { id: 'spices', title: 'Spices', icon: '🌶️' },
+  { id: 'toys', title: 'Toys', icon: '🧸' },
+  { id: 'home_decor', title: 'Home Decor', icon: '🪴' },
+  
 ];
 
 const CategoryProducts = () => {
@@ -97,6 +101,7 @@ const CategoryProducts = () => {
             data={SIDEBAR_CATEGORIES}
             keyExtractor={(item) => item.id}
             showsVerticalScrollIndicator={false}
+            contentContainerStyle={styles.sidebarListContent}
             renderItem={({ item }) => {
               const isActive = selectedSideCategory === item.id;
               return (
@@ -228,6 +233,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#F7F9F7',
     borderRightWidth: 1,
     borderRightColor: '#eee',
+  },
+  sidebarListContent: {
+    paddingBottom: 100, // Provides spacing at bottom to avoid overlapping with navigation bar
   },
   sidebarItem: {
     paddingVertical: 15,

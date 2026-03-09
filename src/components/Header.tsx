@@ -47,7 +47,9 @@ const Header = () => {
           </View>
           <View style={styles.locationContainer}>
             <Text style={styles.locationPin}>📍</Text>
-            <Text style={styles.addressText}>Sector 62, Noida ⌄</Text>
+            <Text style={styles.addressText} numberOfLines={1}>
+              {user?.addresses || 'Set Location'} ⌄
+            </Text>
           </View>
         </View>
 
@@ -138,9 +140,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#F1F8E9',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
     borderRadius: 12,
+    maxWidth: '90%',
   },
   locationPin: {
     marginRight: 4,

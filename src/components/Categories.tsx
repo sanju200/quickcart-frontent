@@ -33,6 +33,9 @@ const CATEGORY_GRID = [
   { id: 'g4', category: 'beverages', title: 'Cold Drinks & Juices', icon: '🥤', bgColor: '#FCE4EC' },
   { id: 'g5', category: 'frozen', title: 'Instant & Frozen Food', icon: '🍜', bgColor: '#F3E5F5' },
   { id: 'g6', category: 'beverages', title: 'Tea, Coffee & Health', icon: '☕', bgColor: '#EFEBE9' },
+  { id: 'g7', category: 'spices', title: 'Spices & Masalas', icon: '🌶️', bgColor: '#FFF3E0' },
+  { id: 'g8', category: 'home_decor', title: 'Home Decoration', icon: '🪴', bgColor: '#E8F5E9' },
+  { id: 'g9', category: 'toys', title: 'Toys & Games', icon: '🧸', bgColor: '#FCE4EC' },
 ];
 
 const Categories = () => {

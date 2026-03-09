@@ -28,6 +28,7 @@ import CartScreen from './src/components/CartScreen';
 import PaymentsScreen from './src/components/PaymentsScreen';
 import LoginScreen from './src/components/LoginScreen';
 import SignupScreen from './src/components/SignupScreen';
+import EditProfileScreen from './src/components/EditProfileScreen';
 import PreviouslyOrderedProducts from './src/components/PreviouslyOrderedProducts';
 import NotFoundScreen from './src/components/NotFoundScreen';
 import ToastNotification from './src/components/ToastNotification';
@@ -170,16 +171,9 @@ function AppContent({ fadeAnim }: { fadeAnim: Animated.Value }) {
         return <CategoryProducts />;
       case 'PROFILE':
         return <ProfileScreen />;
-      case 'CATEGORIES':
-        return (
-          <View style={styles.placeholderScreen}>
-            <Text style={styles.placeholderIcon}>🔳</Text>
-            <Text style={styles.placeholderText}>All Categories Screen</Text>
-            <TouchableOpacity onPress={() => navigate('HOME')} style={styles.backBtn}>
-              <Text style={styles.backBtnText}>Explore Home</Text>
-            </TouchableOpacity>
-          </View>
-        );
+      case 'EDIT_PROFILE':
+        return <EditProfileScreen />;
+
       case 'ORDERS':
         return <OrdersScreen />;
       case 'CART':
@@ -219,9 +213,9 @@ function AppContent({ fadeAnim }: { fadeAnim: Animated.Value }) {
             <Text style={[styles.navLabel, currentScreen === 'HOME' && styles.navActiveText]}>Home</Text>
           </TouchableOpacity>
           
-          <TouchableOpacity onPress={() => navigate('CATEGORIES')} style={styles.navItem}>
-            <Text style={[styles.navIcon, currentScreen === 'CATEGORIES' && styles.navActiveText]}>🔳</Text>
-            <Text style={[styles.navLabel, currentScreen === 'CATEGORIES' && styles.navActiveText]}>Categories</Text>
+          <TouchableOpacity onPress={() => navigate('CATEGORY_PRODUCTS', { category: 'all' })} style={styles.navItem}>
+            <Text style={[styles.navIcon, currentScreen === 'CATEGORY_PRODUCTS' && styles.navActiveText]}>🔳</Text>
+            <Text style={[styles.navLabel, currentScreen === 'CATEGORY_PRODUCTS' && styles.navActiveText]}>Categories</Text>
           </TouchableOpacity>
 
           <TouchableOpacity onPress={() => navigate('ORDERS')} style={styles.navItem}>

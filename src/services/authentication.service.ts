@@ -30,12 +30,14 @@ export const loginUser = async (email: string, password: string) => {
         await AsyncStorage.setItem('authToken', data.access_token || data.token);
         // Store user data from the login response
         const userData: UserData = {
-            id: data.user?.id || data.id || '',
-            name: data.user?.name || data.name || email.split('@')[0],
-            email: data.user?.email || data.email || email,
-            phone: data.user?.phone || data.phone || '',
-            addresses: data.user?.address || data.address || '',
+            id: data.id || data.user?.id || '',
+            name: data.name || data.user?.name || email.split('@')[0],
+            email: data.email || data.user?.email || email,
+            phone: data.phone || data.user?.phone || '',
+            addresses: data.addresses || data.user?.addresses || data.address || data.user?.address || '',
         };
+
+
         await saveUserData(userData);
         return data;
     } catch (error: any) {
@@ -89,7 +91,12 @@ export const saveUserData = async (userData: UserData) => {
 export const getUserData = async (): Promise<UserData | null> => {
     try {
         const data = await AsyncStorage.getItem('userData');
-        return data ? JSON.parse(data) : null;
+        const user = data ? JSON.parse(data) : null;
+        if (user && user.address && !user.addresses) {
+            user.addresses = user.address;
+        }
+        return user;
+
     } catch (error) {
         return null;
     }

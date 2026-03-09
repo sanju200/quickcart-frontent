@@ -64,8 +64,9 @@ const ProfileScreen = () => {
               <Text style={styles.userName}>{user?.name || 'User'}</Text>
               <Text style={styles.userEmail}>{user?.email || 'No email'}</Text>
               {user?.phone ? <Text style={styles.userPhone}>{user.phone}</Text> : null}
+              {user?.addresses ? <Text style={styles.userAddress} numberOfLines={1}>{user.addresses}</Text> : null}
             </View>
-            <TouchableOpacity style={styles.editBtn}>
+            <TouchableOpacity style={styles.editBtn} onPress={() => navigate('EDIT_PROFILE')}>
               <Text style={styles.editBtnText}>Edit</Text>
             </TouchableOpacity>
           </View>
@@ -184,6 +185,12 @@ const styles = StyleSheet.create({
   userPhone: {
     fontSize: 12,
     color: '#666',
+  },
+  userAddress: {
+    fontSize: 12,
+    color: '#888',
+    marginTop: 2,
+    fontStyle: 'italic',
   },
   editBtn: {
     backgroundColor: '#F1F8E9',
