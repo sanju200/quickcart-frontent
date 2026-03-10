@@ -47,12 +47,16 @@ const Header = () => {
             <Text style={styles.logoTextSmall}>QuickCart</Text>
           </View>
           {userRole === 'USER' && (
-            <View style={styles.locationContainer}>
+            <TouchableOpacity 
+              style={styles.locationContainer} 
+              onPress={() => navigate('SAVED_ADDRESSES')}
+              activeOpacity={0.7}
+            >
               <Text style={styles.locationPin}>📍</Text>
               <Text style={styles.addressText} numberOfLines={1}>
                 {user?.addresses?.find(a => a.isSelected)?.streetAddress || 'Set Location'} ⌄
               </Text>
-            </View>
+            </TouchableOpacity>
           )}
         </View>
 
