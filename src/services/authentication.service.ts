@@ -21,6 +21,7 @@ export interface UserData {
     name: string;
     email: string;
     phone?: string;
+    role?: 'USER' | 'ADMIN' | 'INVENTORY_MANAGER' | 'LOGISTICS_PARTNER' | 'DELIVERY_PARTNER';
     addresses?: Address[];
 }
 
@@ -62,6 +63,7 @@ export const loginUser = async (email: string, password: string) => {
             name: data.name || data.user?.name || email.split('@')[0],
             email: data.email || data.user?.email || email,
             phone: data.phone || data.user?.phone || '',
+            role: data.role || data.user?.role || 'USER',
             addresses: normalizeAddresses(data.addresses || data.user?.addresses || data.address || data.user?.address),
         };
 
@@ -181,6 +183,7 @@ export const updateProfile = async (userData: UserData) => {
             name: data.name || userData.name,
             email: data.email || userData.email,
             phone: data.phone || userData.phone,
+            role: data.role || userData.role,
             addresses: normalizeAddresses(data.addresses || data.address),
         };
 

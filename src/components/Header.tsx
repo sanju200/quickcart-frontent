@@ -12,7 +12,7 @@ import { useAppNavigation, useCartCount } from '../context/AppContext';
 import { getUserData, UserData } from '../services/authentication.service';
 
 const Header = () => {
-  const { navigate, currentScreen } = useAppNavigation();
+  const { navigate, currentScreen, userRole } = useAppNavigation();
   const { cartCount } = useCartCount();
   const [user, setUser] = useState<UserData | null>(null);
 
@@ -44,28 +44,31 @@ const Header = () => {
         <View style={styles.centerContainer}>
           <View style={styles.logoMiniContainer}>
             <Text style={styles.logoIconTextSmall}>🥬</Text>
-            <Text style={styles.logoTextSmall}>QuickGreen</Text>
+            <Text style={styles.logoTextSmall}>QuickCart</Text>
           </View>
-          <View style={styles.locationContainer}>
-            <Text style={styles.locationPin}>📍</Text>
-            <Text style={styles.addressText} numberOfLines={1}>
-              {user?.addresses?.find(a => a.isSelected)?.streetAddress || 'Set Location'} ⌄
-            </Text>
-
-          </View>
+          {userRole === 'USER' && (
+            <View style={styles.locationContainer}>
+              <Text style={styles.locationPin}>📍</Text>
+              <Text style={styles.addressText} numberOfLines={1}>
+                {user?.addresses?.find(a => a.isSelected)?.streetAddress || 'Set Location'} ⌄
+              </Text>
+            </View>
+          )}
         </View>
 
-        {/* Cart Button (Right) */}
-        <TouchableOpacity style={styles.cartButton} onPress={() => navigate('CART')}>
-          <View style={styles.cartIconWrapper}>
-            <Text style={styles.cartIcon}>🛒</Text>
-            {cartCount > 0 && (
-              <View style={styles.cartBadge}>
-                <Text style={styles.cartBadgeText}>{cartCount}</Text>
-              </View>
-            )}
-          </View>
-        </TouchableOpacity>
+        {/* Cart Button (Right) - Only for customers */}
+        {userRole === 'USER' && (
+          <TouchableOpacity style={styles.cartButton} onPress={() => navigate('CART')}>
+            <View style={styles.cartIconWrapper}>
+              <Text style={styles.cartIcon}>🛒</Text>
+              {cartCount > 0 && (
+                <View style={styles.cartBadge}>
+                  <Text style={styles.cartBadgeText}>{cartCount}</Text>
+                </View>
+              )}
+            </View>
+          </TouchableOpacity>
+        )}
       </View>
 
       {/* Search Bar */}
@@ -73,7 +76,7 @@ const Header = () => {
         <View style={styles.searchBar}>
           <Text style={styles.searchIcon}>�</Text>
           <TextInput
-            placeholder="Search for organics, veggies, fruits..."
+            placeholder={userRole === 'USER' ? "Search for organics, veggies, fruits..." : "Search orders, items, reports..."}
             style={styles.searchInput}
             placeholderTextColor="#888"
           />

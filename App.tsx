@@ -30,10 +30,17 @@ import LoginScreen from './src/components/LoginScreen';
 import SignupScreen from './src/components/SignupScreen';
 import EditProfileScreen from './src/components/EditProfileScreen';
 import SavedAddressesScreen from './src/components/SavedAddressesScreen';
+import ContactDetailsScreen from './src/components/ContactDetailsScreen';
 import PreviouslyOrderedProducts from './src/components/PreviouslyOrderedProducts';
+
+import HelpAndSupportScreen from './src/components/HelpAndSupportScreen';
+import TrackOrderScreen from './src/components/TrackOrderScreen';
+import InventoryManagerScreen from './src/components/InventoryManagerScreen';
+import LogisticsManagerScreen from './src/components/LogisticsManagerScreen';
+import DeliveryPartnerScreen from './src/components/DeliveryPartnerScreen';
 import NotFoundScreen from './src/components/NotFoundScreen';
 import ToastNotification from './src/components/ToastNotification';
-import { getAuthToken } from './src/services/authentication.service';
+import { getAuthToken, getUserData } from './src/services/authentication.service';
 
 const { width } = Dimensions.get('window');
 
@@ -43,6 +50,7 @@ import { getCart } from './src/services/cart.service';
 function App() {
   const [currentScreen, setCurrentScreen] = useState<Screen>('HOME');
   const [categoryData, setCategoryData] = useState<any>(null);
+  const [userRole, setUserRole] = useState<string | null>(null);
   const [isLoadingAuth, setIsLoadingAuth] = useState(true);
   const [cartItems, setCartItems] = useState<any[]>([]);
   const [cartCount, setCartCount] = useState(0);
@@ -77,6 +85,8 @@ function App() {
         if (!token) {
           setCurrentScreen('LOGIN');
         } else {
+          const userData = await getUserData();
+          setUserRole(userData?.role || 'USER');
           setCurrentScreen('HOME');
           refreshCartCount(); // Initial count load
         }
@@ -99,8 +109,11 @@ function App() {
       setCurrentScreen(screen);
       if (data) setCategoryData(data);
       
-      // Refresh cart count on specific navigations if needed
-      if (screen === 'CART' || screen === 'HOME') {
+      // Refresh cart count and role on specific navigations if needed
+      if (screen === 'HOME') {
+        getUserData().then(data => setUserRole(data?.role || 'USER'));
+        refreshCartCount();
+      } else if (screen === 'CART') {
         refreshCartCount();
       }
 
@@ -125,7 +138,7 @@ function App() {
   }
 
   return (
-    <NavigationContext.Provider value={{ currentScreen, categoryData, navigate, showToast }}>
+    <NavigationContext.Provider value={{ currentScreen, categoryData, userRole, navigate, showToast }}>
       <CartContext.Provider value={{ cartItems, cartCount, refreshCartCount, resetCart }}>
         <SafeAreaProvider>
           <StatusBar barStyle="dark-content" backgroundColor="#fff" />
@@ -146,12 +159,16 @@ function App() {
 
 function AppContent({ fadeAnim }: { fadeAnim: Animated.Value }) {
   const safeAreaInsets = useSafeAreaInsets();
-  const { currentScreen, navigate } = useContext(NavigationContext)!;
+  const { currentScreen, navigate, categoryData, userRole } = useContext(NavigationContext)!;
   const { cartItems, cartCount, refreshCartCount } = useContext(CartContext)!;
 
   const renderScreen = () => {
     switch (currentScreen) {
       case 'HOME':
+        if (userRole === 'DELIVERY_PARTNER') return <DeliveryPartnerScreen />;
+        if (userRole === 'INVENTORY_MANAGER') return <InventoryManagerScreen />;
+        if (userRole === 'LOGISTICS_PARTNER') return <LogisticsManagerScreen />;
+        
         return (
           <ScrollView 
             style={styles.scrollView}
@@ -176,6 +193,9 @@ function AppContent({ fadeAnim }: { fadeAnim: Animated.Value }) {
         return <EditProfileScreen />;
       case 'SAVED_ADDRESSES':
         return <SavedAddressesScreen />;
+      case 'CONTACT_DETAILS':
+        return <ContactDetailsScreen />;
+
       case 'ORDERS':
         return <OrdersScreen />;
       case 'CART':
@@ -190,6 +210,16 @@ function AppContent({ fadeAnim }: { fadeAnim: Animated.Value }) {
         return <NotFoundScreen />;
       case 'PREVIOUSLY_ORDERED':
         return <PreviouslyOrderedProducts />;
+      case 'HELP_AND_SUPPORT':
+        return <HelpAndSupportScreen />;
+      case 'TRACK_ORDER':
+        return <TrackOrderScreen orderId={categoryData?.orderId} />;
+      case 'INVENTORY_MANAGER':
+        return <InventoryManagerScreen />;
+      case 'LOGISTICS_PARTNER':
+        return <LogisticsManagerScreen />;
+      case 'DELIVERY_PARTNER':
+        return <DeliveryPartnerScreen />;
       default:
         return <NotFoundScreen />;
     }
@@ -212,30 +242,54 @@ function AppContent({ fadeAnim }: { fadeAnim: Animated.Value }) {
         <View style={[styles.bottomNav, { paddingBottom: safeAreaInsets.bottom || 15 }]}>
           <TouchableOpacity onPress={() => navigate('HOME')} style={styles.navItem}>
             <Text style={[styles.navIcon, currentScreen === 'HOME' && styles.navActiveText]}>🏠</Text>
-            <Text style={[styles.navLabel, currentScreen === 'HOME' && styles.navActiveText]}>Home</Text>
+            <Text style={[styles.navLabel, currentScreen === 'HOME' && styles.navActiveText]}>
+              {userRole === 'USER' ? 'Home' : 'Dashboard'}
+            </Text>
           </TouchableOpacity>
           
-          <TouchableOpacity onPress={() => navigate('CATEGORY_PRODUCTS', { category: 'all' })} style={styles.navItem}>
-            <Text style={[styles.navIcon, currentScreen === 'CATEGORY_PRODUCTS' && styles.navActiveText]}>🔳</Text>
-            <Text style={[styles.navLabel, currentScreen === 'CATEGORY_PRODUCTS' && styles.navActiveText]}>Categories</Text>
-          </TouchableOpacity>
+          {userRole === 'USER' ? (
+            <>
+              <TouchableOpacity onPress={() => navigate('CATEGORY_PRODUCTS', { category: 'all' })} style={styles.navItem}>
+                <Text style={[styles.navIcon, currentScreen === 'CATEGORY_PRODUCTS' && styles.navActiveText]}>🔳</Text>
+                <Text style={[styles.navLabel, currentScreen === 'CATEGORY_PRODUCTS' && styles.navActiveText]}>Categories</Text>
+              </TouchableOpacity>
 
-          <TouchableOpacity onPress={() => navigate('ORDERS')} style={styles.navItem}>
-            <Text style={[styles.navIcon, currentScreen === 'ORDERS' && styles.navActiveText]}>🔄</Text>
-            <Text style={[styles.navLabel, currentScreen === 'ORDERS' && styles.navActiveText]}>Order Again</Text>
-          </TouchableOpacity>
+              <TouchableOpacity onPress={() => navigate('ORDERS')} style={styles.navItem}>
+                <Text style={[styles.navIcon, currentScreen === 'ORDERS' && styles.navActiveText]}>🔄</Text>
+                <Text style={[styles.navLabel, currentScreen === 'ORDERS' && styles.navActiveText]}>Orders</Text>
+              </TouchableOpacity>
 
-          <TouchableOpacity onPress={() => navigate('CART')} style={styles.navItem}>
-            <View>
-              <Text style={[styles.navIcon, currentScreen === 'CART' && styles.navActiveText]}>🛒</Text>
-              {cartCount > 0 && (
-                <View style={styles.badge}>
-                  <Text style={styles.badgeText}>{cartCount}</Text>
+              <TouchableOpacity onPress={() => navigate('CART')} style={styles.navItem}>
+                <View>
+                  <Text style={[styles.navIcon, currentScreen === 'CART' && styles.navActiveText]}>🛒</Text>
+                  {cartCount > 0 && (
+                    <View style={styles.badge}>
+                      <Text style={styles.badgeText}>{cartCount}</Text>
+                    </View>
+                  )}
                 </View>
-              )}
-            </View>
-            <Text style={[styles.navLabel, currentScreen === 'CART' && styles.navActiveText]}>Cart</Text>
-          </TouchableOpacity>
+                <Text style={[styles.navLabel, currentScreen === 'CART' && styles.navActiveText]}>Cart</Text>
+              </TouchableOpacity>
+            </>
+          ) : (
+            <>
+              <TouchableOpacity 
+                onPress={() => {
+                  if (userRole === 'DELIVERY_PARTNER') navigate('HELP_AND_SUPPORT');
+                  else navigate('PROFILE');
+                }} 
+                style={styles.navItem}
+              >
+                <Text style={[styles.navIcon, currentScreen === 'HELP_AND_SUPPORT' && styles.navActiveText]}>🎧</Text>
+                <Text style={[styles.navLabel, currentScreen === 'HELP_AND_SUPPORT' && styles.navActiveText]}>Support</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity onPress={() => navigate('PROFILE')} style={styles.navItem}>
+                <Text style={[styles.navIcon, currentScreen === 'PROFILE' && styles.navActiveText]}>👤</Text>
+                <Text style={[styles.navLabel, currentScreen === 'PROFILE' && styles.navActiveText]}>Profile</Text>
+              </TouchableOpacity>
+            </>
+          )}
         </View>
       )}
     </View>

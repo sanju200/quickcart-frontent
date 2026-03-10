@@ -76,6 +76,29 @@ const ProfileScreen = () => {
           </View>
         )}
 
+        {/* Role-Specific Dashboard Shortcut */}
+        {!loading && user?.role && ['INVENTORY_MANAGER', 'LOGISTICS_PARTNER', 'DELIVERY_PARTNER'].includes(user.role) && (
+          <TouchableOpacity 
+            style={styles.dashboardShortcut}
+            onPress={() => {
+              if (user.role === 'INVENTORY_MANAGER') navigate('INVENTORY_MANAGER');
+              else if (user.role === 'LOGISTICS_PARTNER') navigate('LOGISTICS_PARTNER');
+              else if (user.role === 'DELIVERY_PARTNER') navigate('DELIVERY_PARTNER');
+            }}
+          >
+            <View style={styles.dashboardIconBox}>
+              <Text style={styles.dashboardIcon}>📊</Text>
+            </View>
+            <View style={styles.dashboardInfo}>
+              <Text style={styles.dashboardTitle}>
+                {user.role.replace('_', ' ')} Dashboard
+              </Text>
+              <Text style={styles.dashboardSubtitle}>Manage orders and fulfillment</Text>
+            </View>
+            <Text style={styles.arrowIcon}>›</Text>
+          </TouchableOpacity>
+        )}
+
         {/* Options List */}
         <View style={styles.optionsContainer}>
           {PROFILE_OPTIONS.map((item) => (
@@ -87,7 +110,12 @@ const ProfileScreen = () => {
                   navigate('ORDERS');
                 } else if (item.title === 'Saved Addresses') {
                   navigate('SAVED_ADDRESSES');
+                } else if (item.title === 'Contact Details') {
+                  navigate('CONTACT_DETAILS');
+                } else if (item.title === 'Help & Support') {
+                  navigate('HELP_AND_SUPPORT');
                 }
+
               }}
             >
               <View style={styles.optionIconBox}>
@@ -110,7 +138,24 @@ const ProfileScreen = () => {
           <Text style={styles.logoutBtnText}>Logout</Text>
         </TouchableOpacity>
 
-        <Text style={styles.versionText}>App Version 1.0.4</Text>
+        {user?.role === 'ADMIN' && (
+          <View style={styles.roleContainer}>
+            <Text style={styles.roleHeader}>Switch Role (Demo Mode)</Text>
+            <View style={styles.roleButtons}>
+              <TouchableOpacity style={styles.roleBtn} onPress={() => navigate('INVENTORY_MANAGER')}>
+                <Text style={styles.roleBtnText}>Inventory</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.roleBtn} onPress={() => navigate('LOGISTICS_PARTNER')}>
+                <Text style={styles.roleBtnText}>Logistics</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.roleBtn} onPress={() => navigate('DELIVERY_PARTNER')}>
+                <Text style={styles.roleBtnText}>Delivery</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
+
+        <Text style={styles.versionText}>App Version 1.0.5</Text>
       </ScrollView>
     </View>
   );
@@ -274,6 +319,76 @@ const styles = StyleSheet.create({
     marginTop: 20,
     fontSize: 12,
     color: '#999',
+  },
+  roleContainer: {
+    marginTop: 20,
+    padding: 15,
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#eee',
+  },
+  roleHeader: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#666',
+    marginBottom: 10,
+    textAlign: 'center',
+  },
+  roleButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  roleBtn: {
+    backgroundColor: '#F1F8E9',
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#C8E6C9',
+    width: '30%',
+    alignItems: 'center',
+  },
+  roleBtnText: {
+    fontSize: 11,
+    color: '#2E7D32',
+    fontWeight: 'bold',
+  },
+  dashboardShortcut: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#E8F5E9',
+    padding: 15,
+    borderRadius: 16,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: '#C8E6C9',
+  },
+  dashboardIconBox: {
+    width: 40,
+    height: 40,
+    backgroundColor: '#fff',
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 15,
+  },
+  dashboardIcon: {
+    fontSize: 20,
+  },
+  dashboardInfo: {
+    flex: 1,
+  },
+  dashboardTitle: {
+    fontSize: 15,
+    fontWeight: 'bold',
+    color: '#1B5E20',
+  },
+  dashboardSubtitle: {
+    fontSize: 12,
+    color: '#2E7D32',
+    marginTop: 2,
+    opacity: 0.8,
   }
 });
 

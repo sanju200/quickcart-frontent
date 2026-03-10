@@ -12,6 +12,7 @@ export interface Product {
     image: string;
     category: string;
     description?: string;
+    stock?: number;
 }
 
 export const getAllProducts = async (): Promise<Product[]> => {
@@ -65,6 +66,34 @@ export const getProductsByCategory = async (category: string): Promise<Product[]
         return data;
     } catch (error: any) {
         console.error(`Error fetching products for category ${category}:`, error);
+        throw error;
+    }
+};
+
+export const updateProductStock = async (productId: string, stock: number): Promise<Product> => {
+    try {
+        const token = await getAuthToken();
+        const headers: any = {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+        };
+        if (token) {
+            headers['Authorization'] = `Bearer ${token}`;
+        }
+
+        const response = await fetch(`${API_URL}/${productId}/stock`, {
+            method: 'PUT',
+            headers: headers,
+            body: JSON.stringify({ stock }),
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.message || `Failed to update stock (Status: ${response.status})`);
+        }
+        return await response.json();
+    } catch (error: any) {
+        console.error(`Error updating stock for product ${productId}:`, error);
         throw error;
     }
 };

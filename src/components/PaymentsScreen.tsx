@@ -45,13 +45,27 @@ const PaymentsScreen = () => {
       const user = await getUserData();
       if (!user) throw new Error('User not found');
 
+      // Extract the selected address string
+      let selectedAddress = 'Address not provided';
+      if (Array.isArray(user.addresses)) {
+        const selected = user.addresses.find((a: any) => a.isSelected);
+        if (selected) {
+          selectedAddress = `${selected.streetAddress}, ${selected.city}, ${selected.state} - ${selected.postalCode}`;
+        } else if (user.addresses.length > 0) {
+          const first = user.addresses[0];
+          selectedAddress = `${first.streetAddress}, ${first.city}, ${first.state} - ${first.postalCode}`;
+        }
+      } else if (typeof user.addresses === 'string') {
+        selectedAddress = user.addresses;
+      }
+
       const orderData = {
         userId: user.id,
         userName: user.name,
         userEmail: user.email,
         userPhone: user.phone || 'N/A',
-        address: user.addresses || 'Address not provided', // Fallback to avoid empty string if required
-        totalAmount: totalAmount,
+        address: selectedAddress,
+        totalAmount: Number(totalAmount),
         items: cartItems.map((item: any) => ({
           productId: item.productId || item.product?.id,
           productTitle: item.product?.name || 'Product',

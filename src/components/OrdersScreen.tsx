@@ -46,7 +46,7 @@ const OrdersScreen = () => {
             <Text style={styles.orderId}>Order #{item.id.slice(0, 8).toUpperCase()}</Text>
           </View>
           <View style={[styles.statusBadge, styles[`status${item.status}`]]}>
-            <Text style={styles.statusText}>{item.status}</Text>
+            <Text style={[styles.statusText, item.status === 'DELIVERED' ? styles.statusTextDELIVERED : (item.status === 'CANCELLED' ? styles.statusTextCANCELLED : null)]}>{item.status}</Text>
           </View>
         </View>
 
@@ -66,12 +66,20 @@ const OrdersScreen = () => {
 
         <View style={styles.orderFooter}>
           <Text style={styles.totalLabel}>Total: <Text style={styles.totalAmount}>₹{item.totalAmount}</Text></Text>
-          <TouchableOpacity 
-            style={styles.reorderBtn}
-            onPress={() => navigate('HOME')} // In a real app, this would add items to cart
-          >
-            <Text style={styles.reorderText}>Order Again</Text>
-          </TouchableOpacity>
+          <View style={styles.actionButtons}>
+            <TouchableOpacity 
+              style={styles.trackBtn}
+              onPress={() => navigate('TRACK_ORDER', { orderId: item.id })}
+            >
+              <Text style={styles.trackBtnText}>Track</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={styles.reorderBtn}
+              onPress={() => navigate('HOME')}
+            >
+              <Text style={styles.reorderText}>Order Again</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
     );
@@ -195,12 +203,50 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFEBEE',
   },
   statusPLACED: {
-    backgroundColor: '#E3F2FD', // Light blue for placed
+    backgroundColor: '#E3F2FD',
+  },
+  statusPROCESSING: {
+    backgroundColor: '#F3E5F5',
+  },
+  statusHANDED_OVER: {
+    backgroundColor: '#E0F2F1',
+  },
+  statusIN_TRANSIT: {
+    backgroundColor: '#E8EAF6',
+  },
+  statusOUT_FOR_DELIVERY: {
+    backgroundColor: '#FFFDE7',
   },
   statusText: {
     fontSize: 10,
     fontWeight: 'bold',
+    color: '#333',
+  },
+  statusTextDELIVERED: {
     color: '#2E7D32',
+  },
+  statusTextPENDING: {
+    color: '#F57C00',
+  },
+  statusTextCANCELLED: {
+    color: '#D32F2F',
+  },
+  actionButtons: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  trackBtn: {
+    backgroundColor: '#F1F8E9',
+    paddingHorizontal: 15,
+    paddingVertical: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#C8E6C9',
+  },
+  trackBtnText: {
+    color: '#2E7D32',
+    fontSize: 12,
+    fontWeight: 'bold',
   },
   itemsPreview: {
     flexDirection: 'row',
