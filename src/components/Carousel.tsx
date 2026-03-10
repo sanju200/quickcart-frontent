@@ -9,6 +9,8 @@ import {
   Animated,
   TouchableOpacity,
 } from 'react-native';
+import { useAppNavigation } from '../context/AppContext';
+
 
 const { width } = Dimensions.get('window');
 const ITEM_WIDTH = width * 0.94;
@@ -59,6 +61,7 @@ const DATA: CarouselItem[] = [
 ];
 
 const Carousel = () => {
+  const { navigate } = useAppNavigation();
   const scrollX = useRef(new Animated.Value(0)).current;
   const flatListRef = useRef<FlatList>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -126,7 +129,10 @@ const Carousel = () => {
             <Text style={styles.title}>{item.title}</Text>
             <Text style={[styles.subtitle, styles.lightSubtitle]}>{item.subtitle}</Text>
             <Text style={styles.description}>{item.description}</Text>
-            <TouchableOpacity style={styles.button}>
+            <TouchableOpacity 
+              style={styles.button}
+              onPress={() => navigate('CATEGORY_PRODUCTS', { category: 'all' })}
+            >
               <Text style={styles.buttonText}>Order Now →</Text>
             </TouchableOpacity>
           </View>
