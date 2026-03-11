@@ -70,7 +70,7 @@ const ProfileScreen = () => {
                 </Text>
               ) : null}
             </View>
-            <TouchableOpacity style={styles.editBtn} onPress={() => navigate('EDIT_PROFILE')}>
+            <TouchableOpacity style={styles.editBtn} onPress={() => navigate('EDIT_PROFILE', { from: 'PROFILE' })}>
               <Text style={styles.editBtnText}>Edit</Text>
             </TouchableOpacity>
           </View>
@@ -101,21 +101,35 @@ const ProfileScreen = () => {
 
         {/* Options List */}
         <View style={styles.optionsContainer}>
-          {PROFILE_OPTIONS.map((item) => (
+          {[
+            ...PROFILE_OPTIONS,
+            ...(user?.role?.toUpperCase() === 'ADMIN' || user?.role?.toUpperCase() === 'INVENTORY_MANAGER' 
+              ? [
+                  { id: 'admin-dash', title: 'Admin Terminal', icon: '🚀', subtitle: 'Open main management hub' },
+                  { id: 'sec-pref', title: '--- SETTINGS ---', type: 'header' },
+                ] 
+              : [])
+          ].map((item: any) => (
+            item.type === 'header' ? (
+              <View key={item.id} style={styles.sectionHeader}>
+                <Text style={styles.sectionHeaderText}>{item.title}</Text>
+              </View>
+            ) : (
             <TouchableOpacity 
               key={item.id} 
               style={styles.optionItem}
               onPress={() => {
                 if (item.title === 'Order History') {
-                  navigate('ORDERS');
+                  navigate('ORDERS', { from: 'PROFILE' });
                 } else if (item.title === 'Saved Addresses') {
-                  navigate('SAVED_ADDRESSES');
+                  navigate('SAVED_ADDRESSES', { from: 'PROFILE' });
                 } else if (item.title === 'Contact Details') {
-                  navigate('CONTACT_DETAILS');
+                  navigate('CONTACT_DETAILS', { from: 'PROFILE' });
                 } else if (item.title === 'Help & Support') {
-                  navigate('HELP_AND_SUPPORT');
+                  navigate('HELP_AND_SUPPORT', { from: 'PROFILE' });
+                } else if (item.title === 'Admin Terminal') {
+                  navigate('HOME');
                 }
-
               }}
             >
               <View style={styles.optionIconBox}>
@@ -127,6 +141,7 @@ const ProfileScreen = () => {
               </View>
               <Text style={styles.arrowIcon}>›</Text>
             </TouchableOpacity>
+            )
           ))}
         </View>
 
@@ -389,7 +404,18 @@ const styles = StyleSheet.create({
     color: '#2E7D32',
     marginTop: 2,
     opacity: 0.8,
-  }
+  },
+  sectionHeader: {
+    marginTop: 20,
+    marginBottom: 10,
+    paddingHorizontal: 20,
+  },
+  sectionHeaderText: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#9E9E9E',
+    letterSpacing: 1,
+  },
 });
 
 export default ProfileScreen;

@@ -15,36 +15,43 @@ import { getOrders, Order, OrderItem } from '../services/order.service';
 import { useEffect } from 'react';
 import { Alert } from 'react-native';
 
+import { getAllCategories } from '../services/category.service';
+
 const CATEGORY_TABS = [
-  { id: '1', title: 'All Products', icon: '🏠' },
-  { id: '2', title: 'Best Sellers', icon: '🔥' },
-  { id: '3', title: 'Fresh Arrivals', icon: '🌟' },
-  { id: '4', title: 'Under ₹99', icon: '💰' },
-  { id: '5', title: 'Healthy Options', icon: '🥗' },
-  { id: '6', title: 'Organic', icon: '🌿' },
-  { id: '7', title: 'Premium', icon: '👑' },
-  { id: '8', title: 'Combo Deals', icon: '🎁' },
+  { id: '1', title: 'All Products', icon: '🏠', category: 'all' },
+  { id: '2', title: 'Best Sellers', icon: '🔥', tag: 'best_seller' },
+  { id: '3', title: 'Fresh Arrivals', icon: '🌟', tag: 'fresh' },
+  { id: '4', title: 'Under ₹99', icon: '💰', tag: 'under_99' },
+  { id: '5', title: 'Healthy', icon: '🥗', tag: 'healthy' },
+  { id: '6', title: 'Organic', icon: '🌿', tag: 'organic' },
+  { id: '7', title: 'Premium', icon: '👑', tag: 'premium' },
+  { id: '8', title: 'Combos', icon: '🎁', tag: 'combo' },
 ];
 
-const CATEGORY_GRID = [
-  { id: 'g1', category: 'veggies', title: 'Fruits & Vegetables', icon: '🥬', bgColor: '#F1F8E9' },
-  { id: 'g2', category: 'dairy', title: 'Dairy & Breakfast', icon: '🥛', bgColor: '#E3F2FD' },
-  { id: 'g3', category: 'snacks', title: 'Munchies', icon: '🍿', bgColor: '#FFF3E0' },
-  { id: 'g4', category: 'beverages', title: 'Cold Drinks & Juices', icon: '🥤', bgColor: '#FCE4EC' },
-  { id: 'g5', category: 'frozen', title: 'Instant & Frozen Food', icon: '🍜', bgColor: '#F3E5F5' },
-  { id: 'g6', category: 'beverages', title: 'Tea, Coffee & Health', icon: '☕', bgColor: '#EFEBE9' },
-  { id: 'g7', category: 'spices', title: 'Spices & Masalas', icon: '🌶️', bgColor: '#FFF3E0' },
-  { id: 'g8', category: 'home_decor', title: 'Home Decoration', icon: '🪴', bgColor: '#E8F5E9' },
-  { id: 'g9', category: 'toys', title: 'Toys & Games', icon: '🧸', bgColor: '#FCE4EC' },
-];
+const BG_COLORS = ['#F1F8E9', '#E3F2FD', '#FFF3E0', '#FCE4EC', '#F3E5F5', '#EFEBE9'];
 
 const Categories = () => {
   const [activeTab, setActiveTab ] = useState('1');
   const { navigate } = useAppNavigation();
   const { cartItems, refreshCartCount } = useCartCount();
   const [recentlyOrdered, setRecentlyOrdered] = useState<Product[]>([]);
+  const [gridCategories, setGridCategories] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetchRecentlyOrdered();
+    const fetchCats = async () => {
+        try {
+            const data = await getAllCategories();
+            // Filter out 'all' from grid display
+            setGridCategories(data.filter(c => c.id !== 'all'));
+        } catch (err) {
+            console.error('Error fetching grid categories:', err);
+        }
+    };
+    fetchCats();
+  }, []);
 
   const getProductQuantity = (productId: string) => {
     const item = cartItems.find((i: CartItem) => (i.productId || i.product?.id) === productId);
@@ -140,7 +147,14 @@ const Categories = () => {
                 styles.tab,
                 isActive ? styles.tabActive : styles.tabInactive,
               ]}
-              onPress={() => setActiveTab(item.id)}
+              onPress={() => {
+                setActiveTab(item.id);
+                navigate('FILTERED_PRODUCTS', { 
+                  category: (item as any).category || 'all', 
+                  tag: (item as any).tag || '',
+                  title: item.title
+                });
+              }}
             >
               <Text style={styles.tabIcon}>{item.icon}</Text>
               <Text
@@ -158,18 +172,22 @@ const Categories = () => {
 
       {/* Category Grid */}
       <View style={styles.gridContainer}>
-        {CATEGORY_GRID.map((item) => (
-          <TouchableOpacity 
-            key={item.id} 
-            style={styles.gridItem}
-            onPress={() => navigate('CATEGORY_PRODUCTS', item)}
-          >
-            <View style={[styles.iconBox, { backgroundColor: item.bgColor }]}>
-              <Text style={styles.gridIcon}>{item.icon}</Text>
-            </View>
-            <Text style={styles.gridTitle}>{item.title}</Text>
-          </TouchableOpacity>
-        ))}
+        {gridCategories.map((item, index) => {
+          const bgColor = BG_COLORS[index % BG_COLORS.length];
+          const catValue = item.tag || item.id || item.name;
+          return (
+            <TouchableOpacity 
+              key={item.id} 
+              style={styles.gridItem}
+              onPress={() => navigate('CATEGORY_PRODUCTS', { category: catValue })}
+            >
+              <View style={[styles.iconBox, { backgroundColor: bgColor }]}>
+                <Text style={styles.gridIcon}>{item.icon || '📦'}</Text>
+              </View>
+              <Text style={styles.gridTitle}>{item.name || item.title}</Text>
+            </TouchableOpacity>
+          );
+        })}
       </View>
 
       {/* Recently Ordered Section */}
@@ -197,7 +215,14 @@ const Categories = () => {
             <View key={item.id} style={styles.productCard}>
               <Image source={{ uri: item.image }} style={styles.productImage} />
               <Text style={styles.productName} numberOfLines={2}>{item.name}</Text>
-              <Text style={styles.productWeight}>{item.weight}</Text>
+              <View style={styles.cardTags}>
+                <Text style={styles.productWeight}>{item.weight}</Text>
+                <View style={styles.categoryBadge}>
+                   <Text style={styles.categoryBadgeText}>
+                     {item.category && typeof item.category === 'object' ? ((item.category as any).title || (item.category as any).name || (item.category as any).category) : (item.category || 'General')}
+                   </Text>
+                </View>
+              </View>
               <View style={styles.priceRow}>
                 <Text style={styles.productPrice}>
                   {`₹${item.price}`}
@@ -330,12 +355,17 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   iconBox: {
-    width: 80,
-    height: 80,
+    width: 75,
+    height: 75,
     borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 8,
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
   },
   gridIcon: {
     fontSize: 32,
@@ -508,6 +538,24 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: 'bold',
     textAlign: 'center',
+  },
+  cardTags: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginVertical: 4,
+  },
+  categoryBadge: {
+    backgroundColor: '#F1F8E9',
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+    borderRadius: 4,
+  },
+  categoryBadgeText: {
+    fontSize: 8,
+    color: '#2E7D32',
+    fontWeight: 'bold',
+    textTransform: 'uppercase',
   },
 });
 

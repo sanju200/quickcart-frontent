@@ -14,6 +14,7 @@ import {
 import { useAppNavigation } from '../context/AppContext';
 import { getAllOrders, updateOrderStatus, Order, OrderStatus } from '../services/order.service';
 import { getAllProducts, Product, updateProductStock } from '../services/product.service';
+import { getAllCategories } from '../services/category.service';
 
 const InventoryManagerScreen = () => {
   const { navigate } = useAppNavigation();
@@ -22,11 +23,22 @@ const InventoryManagerScreen = () => {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab ] = useState<'ORDERS' | 'INVENTORY'>('ORDERS');
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('all');
   const [expandedOrders, setExpandedOrders] = useState<string[]>([]);
   const [stats, setStats] = useState({ pending: 0, processing: 0, lowStock: 0 });
+  const [categories, setCategories] = useState<any[]>([]);
 
   useEffect(() => {
     fetchData();
+    const fetchCats = async () => {
+      try {
+        const data = await getAllCategories();
+        setCategories(data);
+      } catch (err) {
+        console.error('Error loading inventory categories:', err);
+      }
+    };
+    fetchCats();
   }, [activeTab]);
 
   const fetchData = async () => {
@@ -63,25 +75,38 @@ const InventoryManagerScreen = () => {
   };
 
   const handleProcessOrder = async (orderId: string, currentStatus: OrderStatus) => {
-    const nextStatus = currentStatus === 'PLACED' ? 'process' : 'handover';
-    const alertMsg = currentStatus === 'PLACED' 
-        ? 'Move this order to PROCESSING status?' 
-        : 'Order ready for HANDOVER to logistics?';
-
+    if (currentStatus !== 'PLACED') return;
+    
     Alert.alert(
       'Update Status',
-      alertMsg,
+      'Move this order to PROCESSING status and decrease inventory?',
       [
         { text: 'Cancel', style: 'cancel' },
         { 
           text: 'Proceed', 
           onPress: async () => {
             try {
-              await updateOrderStatus(orderId, nextStatus);
+              // Decrement stock for the order items
+              const orderToProcess = orders.find(o => o.id === orderId);
+              if (orderToProcess && orderToProcess.items) {
+                const allProducts = await getAllProducts(); // Fetch latest products
+                for (const item of orderToProcess.items) {
+                   const productId = item.productId || (item as any).product?.id;
+                   if (productId) {
+                      const matchedProduct = allProducts.find(p => p.id === productId);
+                      if (matchedProduct && matchedProduct.stock !== undefined) {
+                         const newStock = Math.max(0, matchedProduct.stock - item.quantity);
+                         await updateProductStock(productId, newStock);
+                      }
+                   }
+                }
+              }
+
+              await updateOrderStatus(orderId, 'process');
               fetchData(); // Refresh list
-              Alert.alert('Success', `Order status updated to ${nextStatus.toUpperCase()}`);
+              Alert.alert('Success', `Order status updated to PROCESSING and stock adjusted`);
             } catch (error: any) {
-              Alert.alert('Error', error.message || 'Failed to update order');
+              Alert.alert('Error', error.message || 'Failed to update order and stock');
             }
           }
         }
@@ -177,12 +202,9 @@ const InventoryManagerScreen = () => {
           )}
 
           {item.status === 'PROCESSING' && (
-            <TouchableOpacity 
-              style={[styles.actionBtn, styles.handoverBtn]} 
-              onPress={() => handleProcessOrder(item.id, item.status)}
-            >
-              <Text style={styles.actionBtnText}>Ready for Handover</Text>
-            </TouchableOpacity>
+            <View style={[styles.actionBtn, { backgroundColor: '#F5F5F5' }]}>
+              <Text style={[styles.actionBtnText, { color: '#999' }]}>Packing (Awaiting Logistics)</Text>
+            </View>
           )}
         </View>
       </View>
@@ -196,7 +218,9 @@ const InventoryManagerScreen = () => {
             <Image source={{ uri: item.image }} style={styles.productImg} />
             <View style={styles.productInfo}>
                 <Text style={styles.productName}>{item.name}</Text>
-                <Text style={styles.productCategory}>{item.category} • ₹{item.price}</Text>
+                <Text style={styles.productCategory}>
+                    {item.category && typeof item.category === 'object' ? ((item.category as any).title || (item.category as any).name || (item.category as any).category) : (item.category || 'General')} • ₹{item.price}
+                </Text>
                 <View style={[styles.stockBadge, isLowStock ? styles.lowStockBg : styles.normalStockBg]}>
                     <Text style={[styles.stockText, isLowStock ? styles.lowStockText : styles.normalStockText]}>
                         Stock: {item.stock} {isLowStock ? '(Low Stock!)' : ''}
@@ -226,24 +250,38 @@ const InventoryManagerScreen = () => {
     o.userName?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const filteredProducts = products.filter(p => 
-    p.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-    p.category.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredProducts = products.filter(p => {
+    const pCatId = (p.category && typeof p.category === 'object') ? (p.category as any).id : (p as any).categoryId;
+    const catStr = (p.category && typeof p.category === 'object') ? ((p.category as any).category || (p.category as any).title || (p.category as any).name || '') : (p.category || '');
+    
+    const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                          catStr.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    const matchesCategory = selectedCategory === 'all' || selectedCategory === 'All' || 
+                           catStr.toLowerCase() === selectedCategory.toLowerCase() ||
+                           pCatId === selectedCategory;
+    
+    return matchesSearch && matchesCategory;
+  });
 
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigate('PROFILE')} style={styles.backButton}>
+        <TouchableOpacity onPress={() => navigate('HOME')} style={styles.backButton}>
           <Text style={styles.backIcon}>←</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Inventory Manager</Text>
-        <TouchableOpacity onPress={fetchData} style={styles.refreshBtn}>
-          <Text style={styles.refreshIcon}>🔄</Text>
-        </TouchableOpacity>
+        <View style={styles.headerActions}>
+          <TouchableOpacity onPress={() => navigate('ADD_PRODUCT')} style={styles.addProductBtn}>
+            <Text style={styles.addProductIcon}>+ Add</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={fetchData} style={styles.refreshBtn}>
+            <Text style={styles.refreshIcon}>🔄</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
-      <ScrollView stickyHeaderIndices={[2]} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={{ paddingBottom: 120 }} stickyHeaderIndices={[2]} showsVerticalScrollIndicator={false}>
           {/* Stats Summary */}
           <View style={styles.statsContainer}>
               <View style={[styles.statCard, styles.pendingCard]}>
@@ -256,11 +294,14 @@ const InventoryManagerScreen = () => {
                   <Text style={styles.statNum}>{stats.processing}</Text>
                   <Text style={styles.statName}>Preparing</Text>
               </View>
-              <View style={[styles.statCard, styles.lowStockCard]}>
+              <TouchableOpacity 
+                style={[styles.statCard, styles.lowStockCard]}
+                onPress={() => navigate('LOW_STOCK_DASHBOARD')}
+              >
                   <Text style={styles.statEmoji}>📉</Text>
                   <Text style={styles.statNum}>{stats.lowStock}</Text>
                   <Text style={styles.statName}>Low Stock</Text>
-              </View>
+              </TouchableOpacity>
           </View>
 
           {/* Search Bar */}
@@ -280,6 +321,32 @@ const InventoryManagerScreen = () => {
                   )}
               </View>
           </View>
+
+          {/* Category Filter Bar (Only for Inventory tab) */}
+          {activeTab === 'INVENTORY' && (
+            <ScrollView 
+                horizontal 
+                showsHorizontalScrollIndicator={false} 
+                contentContainerStyle={styles.categoryFilterContainer}
+                style={{ marginBottom: 15 }}
+            >
+                {categories.map(cat => {
+                    const catId = cat.tag || cat.id || cat.name;
+                    const displayLabel = cat.name || cat.title;
+                    return (
+                        <TouchableOpacity 
+                            key={catId} 
+                            style={[styles.categoryChip, selectedCategory === catId && styles.activeCategoryChip]}
+                            onPress={() => setSelectedCategory(catId)}
+                        >
+                            <Text style={[styles.categoryChipText, selectedCategory === catId && styles.activeCategoryChipText]}>
+                                {displayLabel}
+                            </Text>
+                        </TouchableOpacity>
+                    );
+                })}
+            </ScrollView>
+          )}
 
           {/* Tabs */}
           <View style={styles.tabWrapper}>
@@ -364,6 +431,24 @@ const styles = StyleSheet.create({
     color: '#000',
     flex: 1,
   },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  addProductBtn: {
+    backgroundColor: '#E8F5E9',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    marginRight: 10,
+    borderWidth: 1,
+    borderColor: '#C8E6C9',
+  },
+  addProductIcon: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#2E7D32',
+  },
   refreshBtn: {
     padding: 5,
   },
@@ -410,6 +495,12 @@ const styles = StyleSheet.create({
   searchIcon: { fontSize: 16, marginRight: 8 },
   searchInput: { flex: 1, fontSize: 14, color: '#333' },
   clearIcon: { fontSize: 16, color: '#999', padding: 4 },
+
+  categoryFilterContainer: { paddingHorizontal: 15, paddingBottom: 15, gap: 10 },
+  categoryChip: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, backgroundColor: '#fff', borderWidth: 1, borderColor: '#ddd' },
+  activeCategoryChip: { backgroundColor: '#2E7D32', borderColor: '#2E7D32' },
+  categoryChipText: { fontSize: 13, color: '#666', fontWeight: '500' },
+  activeCategoryChipText: { color: '#fff', fontWeight: 'bold' },
 
   tabWrapper: { backgroundColor: '#F7F9F7', paddingHorizontal: 15, paddingBottom: 10 },
   tabBar: {

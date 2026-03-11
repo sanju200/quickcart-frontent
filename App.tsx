@@ -22,6 +22,7 @@ import Carousel from './src/components/Carousel';
 import Features from './src/components/Features';
 import Categories from './src/components/Categories';
 import CategoryProducts from './src/components/CategoryProducts';
+import FilteredProductsScreen from './src/components/FilteredProductsScreen';
 import ProfileScreen from './src/components/ProfileScreen';
 import OrdersScreen from './src/components/OrdersScreen';
 import CartScreen from './src/components/CartScreen';
@@ -36,6 +37,18 @@ import PreviouslyOrderedProducts from './src/components/PreviouslyOrderedProduct
 import HelpAndSupportScreen from './src/components/HelpAndSupportScreen';
 import TrackOrderScreen from './src/components/TrackOrderScreen';
 import InventoryManagerScreen from './src/components/InventoryManagerScreen';
+import AddProductScreen from './src/components/AddProductScreen';
+import CategoryManagerScreen from './src/components/CategoryManagerScreen';
+import OfferManagerScreen from './src/components/OfferManagerScreen';
+import LowStockDashboard from './src/components/LowStockDashboard';
+import LiveDeliveryMap from './src/components/LiveDeliveryMap';
+import PartnerOnboardingScreen from './src/components/PartnerOnboardingScreen';
+import CommissionManagerScreen from './src/components/CommissionManagerScreen';
+import ExecutiveDashboard from './src/components/ExecutiveDashboard';
+import FeedbackCenterScreen from './src/components/FeedbackCenterScreen';
+import DeliveryAnalyticsScreen from './src/components/DeliveryAnalyticsScreen';
+import OperationalControlScreen from './src/components/OperationalControlScreen';
+import AdminDashboardScreen from './src/components/AdminDashboardScreen';
 import LogisticsManagerScreen from './src/components/LogisticsManagerScreen';
 import DeliveryPartnerScreen from './src/components/DeliveryPartnerScreen';
 import NotFoundScreen from './src/components/NotFoundScreen';
@@ -165,9 +178,10 @@ function AppContent({ fadeAnim }: { fadeAnim: Animated.Value }) {
   const renderScreen = () => {
     switch (currentScreen) {
       case 'HOME':
-        if (userRole === 'DELIVERY_PARTNER') return <DeliveryPartnerScreen />;
-        if (userRole === 'INVENTORY_MANAGER') return <InventoryManagerScreen />;
-        if (userRole === 'LOGISTICS_PARTNER') return <LogisticsManagerScreen />;
+        if (userRole?.toUpperCase() === 'ADMIN') return <AdminDashboardScreen />;
+        if (userRole?.toUpperCase() === 'DELIVERY_PARTNER') return <DeliveryPartnerScreen />;
+        if (userRole?.toUpperCase() === 'INVENTORY_MANAGER') return <InventoryManagerScreen />;
+        if (userRole?.toUpperCase() === 'LOGISTICS_PARTNER') return <LogisticsManagerScreen />;
         
         return (
           <ScrollView 
@@ -187,6 +201,8 @@ function AppContent({ fadeAnim }: { fadeAnim: Animated.Value }) {
         );
       case 'CATEGORY_PRODUCTS':
         return <CategoryProducts />;
+      case 'FILTERED_PRODUCTS':
+        return <FilteredProductsScreen />;
       case 'PROFILE':
         return <ProfileScreen />;
       case 'EDIT_PROFILE':
@@ -216,6 +232,30 @@ function AppContent({ fadeAnim }: { fadeAnim: Animated.Value }) {
         return <TrackOrderScreen orderId={categoryData?.orderId} />;
       case 'INVENTORY_MANAGER':
         return <InventoryManagerScreen />;
+      case 'ADD_PRODUCT':
+        return <AddProductScreen />;
+      case 'CATEGORY_MANAGER':
+        return <CategoryManagerScreen />;
+      case 'OFFER_MANAGER':
+        return <OfferManagerScreen />;
+      case 'LOW_STOCK_DASHBOARD':
+        return <LowStockDashboard />;
+      case 'LIVE_DELIVERY_MAP':
+        return <LiveDeliveryMap />;
+      case 'PARTNER_ONBOARDING':
+        return <PartnerOnboardingScreen />;
+      case 'COMMISSION_MANAGER':
+        return <CommissionManagerScreen />;
+      case 'EXECUTIVE_DASHBOARD':
+        return <ExecutiveDashboard />;
+      case 'FEEDBACK_CENTER':
+        return <FeedbackCenterScreen />;
+      case 'DELIVERY_ANALYTICS':
+        return <DeliveryAnalyticsScreen />;
+      case 'OPERATIONAL_CONTROL':
+        return <OperationalControlScreen />;
+      case 'ADMIN_DASHBOARD':
+        return <AdminDashboardScreen />;
       case 'LOGISTICS_PARTNER':
         return <LogisticsManagerScreen />;
       case 'DELIVERY_PARTNER':
@@ -241,13 +281,13 @@ function AppContent({ fadeAnim }: { fadeAnim: Animated.Value }) {
       {showNavAndHeader && (
         <View style={[styles.bottomNav, { paddingBottom: safeAreaInsets.bottom || 15 }]}>
           <TouchableOpacity onPress={() => navigate('HOME')} style={styles.navItem}>
-            <Text style={[styles.navIcon, currentScreen === 'HOME' && styles.navActiveText]}>🏠</Text>
-            <Text style={[styles.navLabel, currentScreen === 'HOME' && styles.navActiveText]}>
-              {userRole === 'USER' ? 'Home' : 'Dashboard'}
+            <Text style={[styles.navIcon, (currentScreen === 'HOME' || currentScreen === 'ADMIN_DASHBOARD' || ['ADD_PRODUCT', 'INVENTORY_MANAGER', 'CATEGORY_MANAGER', 'OFFER_MANAGER', 'LOW_STOCK_DASHBOARD', 'LIVE_DELIVERY_MAP', 'PARTNER_ONBOARDING', 'COMMISSION_MANAGER', 'OPERATIONAL_CONTROL'].includes(currentScreen)) && styles.navActiveText]}>🏠</Text>
+            <Text style={[styles.navLabel, (currentScreen === 'HOME' || currentScreen === 'ADMIN_DASHBOARD' || ['ADD_PRODUCT', 'INVENTORY_MANAGER', 'CATEGORY_MANAGER', 'OFFER_MANAGER', 'LOW_STOCK_DASHBOARD', 'LIVE_DELIVERY_MAP', 'PARTNER_ONBOARDING', 'COMMISSION_MANAGER', 'OPERATIONAL_CONTROL'].includes(currentScreen)) && styles.navActiveText]}>
+              {userRole?.toUpperCase() === 'USER' ? 'Home' : 'Terminal'}
             </Text>
           </TouchableOpacity>
           
-          {userRole === 'USER' ? (
+          {userRole?.toUpperCase() === 'USER' ? (
             <>
               <TouchableOpacity onPress={() => navigate('CATEGORY_PRODUCTS', { category: 'all' })} style={styles.navItem}>
                 <Text style={[styles.navIcon, currentScreen === 'CATEGORY_PRODUCTS' && styles.navActiveText]}>🔳</Text>
@@ -275,18 +315,22 @@ function AppContent({ fadeAnim }: { fadeAnim: Animated.Value }) {
             <>
               <TouchableOpacity 
                 onPress={() => {
-                  if (userRole === 'DELIVERY_PARTNER') navigate('HELP_AND_SUPPORT');
-                  else navigate('PROFILE');
+                  if (userRole?.toUpperCase() === 'ADMIN') navigate('EXECUTIVE_DASHBOARD');
+                  else navigate('HELP_AND_SUPPORT');
                 }} 
                 style={styles.navItem}
               >
-                <Text style={[styles.navIcon, currentScreen === 'HELP_AND_SUPPORT' && styles.navActiveText]}>🎧</Text>
-                <Text style={[styles.navLabel, currentScreen === 'HELP_AND_SUPPORT' && styles.navActiveText]}>Support</Text>
+                <Text style={[styles.navIcon, (currentScreen === 'HELP_AND_SUPPORT' || currentScreen === 'EXECUTIVE_DASHBOARD' || currentScreen === 'FEEDBACK_CENTER' || currentScreen === 'DELIVERY_ANALYTICS') && styles.navActiveText]}>
+                  {userRole?.toUpperCase() === 'ADMIN' ? '📊' : '🎧'}
+                </Text>
+                <Text style={[styles.navLabel, (currentScreen === 'HELP_AND_SUPPORT' || currentScreen === 'EXECUTIVE_DASHBOARD' || currentScreen === 'FEEDBACK_CENTER' || currentScreen === 'DELIVERY_ANALYTICS') && styles.navActiveText]}>
+                  {userRole?.toUpperCase() === 'ADMIN' ? 'Insights' : 'Support'}
+                </Text>
               </TouchableOpacity>
 
               <TouchableOpacity onPress={() => navigate('PROFILE')} style={styles.navItem}>
                 <Text style={[styles.navIcon, currentScreen === 'PROFILE' && styles.navActiveText]}>👤</Text>
-                <Text style={[styles.navLabel, currentScreen === 'PROFILE' && styles.navActiveText]}>Profile</Text>
+                <Text style={[styles.navLabel, currentScreen === 'PROFILE' && styles.navActiveText]}>Settings</Text>
               </TouchableOpacity>
             </>
           )}

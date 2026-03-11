@@ -15,6 +15,7 @@ const Header = () => {
   const { navigate, currentScreen, userRole } = useAppNavigation();
   const { cartCount } = useCartCount();
   const [user, setUser] = useState<UserData | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     const loadUser = async () => {
@@ -24,6 +25,11 @@ const Header = () => {
     loadUser();
   }, [currentScreen]); // Trigger refresh on navigation
 
+  const handleSearch = () => {
+    if (userRole === 'USER') {
+      navigate('CATEGORY_PRODUCTS', { category: 'all', search: searchQuery });
+    }
+  };
 
   const getInitial = (name: string) => name.charAt(0).toUpperCase();
 
@@ -61,7 +67,7 @@ const Header = () => {
         </View>
 
         {/* Cart Button (Right) - Only for customers */}
-        {userRole === 'USER' && (
+        {userRole?.toUpperCase() === 'USER' && (
           <TouchableOpacity style={styles.cartButton} onPress={() => navigate('CART')}>
             <View style={styles.cartIconWrapper}>
               <Text style={styles.cartIcon}>🛒</Text>
@@ -73,20 +79,40 @@ const Header = () => {
             </View>
           </TouchableOpacity>
         )}
+
+        {/* Add Product Button (Right) - For Admins and Inventory Managers */}
+        {(userRole?.toUpperCase() === 'ADMIN' || userRole?.toUpperCase() === 'INVENTORY_MANAGER') && (
+          <TouchableOpacity 
+            style={styles.addProductBtn} 
+            onPress={() => navigate('ADD_PRODUCT')}
+          >
+            <Text style={styles.addProductIcon}>➕</Text>
+          </TouchableOpacity>
+        )}
       </View>
 
       {/* Search Bar */}
       <View style={styles.searchContainer}>
         <View style={styles.searchBar}>
-          <Text style={styles.searchIcon}>�</Text>
+          <Text style={styles.searchIcon}>🔍</Text>
           <TextInput
             placeholder={userRole === 'USER' ? "Search for organics, veggies, fruits..." : "Search orders, items, reports..."}
             style={styles.searchInput}
             placeholderTextColor="#888"
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            onSubmitEditing={handleSearch}
+            returnKeyType="search"
           />
-          <View style={styles.searchShortcut}>
-            <Text style={styles.shortcutText}>⌘ K</Text>
-          </View>
+          {searchQuery.length > 0 ? (
+            <TouchableOpacity onPress={() => setSearchQuery('')}>
+              <Text style={{ color: '#999', fontSize: 18, marginRight: 5 }}>✕</Text>
+            </TouchableOpacity>
+          ) : (
+            <View style={styles.searchShortcut}>
+              <Text style={styles.shortcutText}>⌘ K</Text>
+            </View>
+          )}
         </View>
       </View>
     </View>
@@ -169,6 +195,19 @@ const styles = StyleSheet.create({
     height: 40,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  addProductBtn: {
+    width: 40,
+    height: 40,
+    backgroundColor: '#E8F5E9',
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#C8E6C9',
+  },
+  addProductIcon: {
+    fontSize: 18,
   },
   cartIconWrapper: {
     position: 'relative',

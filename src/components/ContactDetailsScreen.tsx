@@ -11,7 +11,7 @@ import { useAppNavigation } from '../context/AppContext';
 import { getUserData, UserData } from '../services/authentication.service';
 
 const ContactDetailsScreen = () => {
-  const { navigate } = useAppNavigation();
+  const { navigate, categoryData } = useAppNavigation();
   const [user, setUser] = useState<UserData | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -35,7 +35,10 @@ const ContactDetailsScreen = () => {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigate('PROFILE')} style={styles.backButton}>
+        <TouchableOpacity 
+          onPress={() => navigate(categoryData?.from || 'PROFILE')} 
+          style={styles.backButton}
+        >
           <Text style={styles.backIcon}>←</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Contact Details</Text>
@@ -65,7 +68,7 @@ const ContactDetailsScreen = () => {
 
         <TouchableOpacity 
           style={styles.editBtn} 
-          onPress={() => navigate('EDIT_PROFILE')}
+          onPress={() => navigate('EDIT_PROFILE', { from: categoryData?.from || 'PROFILE' })}
         >
           <Text style={styles.editBtnText}>Edit Details</Text>
         </TouchableOpacity>

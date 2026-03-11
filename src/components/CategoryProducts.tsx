@@ -7,43 +7,62 @@ import {
   Image,
   FlatList,
   Dimensions,
-  ActivityIndicator
+  ActivityIndicator,
+  TextInput
 } from 'react-native';
 import { useAppNavigation, useCartCount } from '../context/AppContext';
-import { getAllProducts, Product } from '../services/product.service';
+import { getFilteredProducts, Product } from '../services/product.service';
+import { getAllCategories } from '../services/category.service';
 import { addToCart, handleCartQuantityChange, CartItem } from '../services/cart.service';
 import { Alert } from 'react-native';
-
-const SIDEBAR_CATEGORIES = [
-  { id: 'all', title: 'All', icon: '🌟' },
-  { id: 'fruits', title: 'Fruits', icon: '🍎' },
-  { id: 'veggies', title: 'Veggies', icon: '🥦' },
-  { id: 'dairy', title: 'Dairy', icon: '🥛' },
-  { id: 'snacks', title: 'Snacks', icon: '🍿' },
-  { id: 'beverages', title: 'Drinks', icon: '🥤' },
-  { id: 'frozen', title: 'Frozen', icon: '🍜' },
-  { id: 'spices', title: 'Spices', icon: '🌶️' },
-  { id: 'toys', title: 'Toys', icon: '🧸' },
-  { id: 'home_decor', title: 'Home Decor', icon: '🪴' },
-  
-];
 
 const CategoryProducts = () => {
   const { categoryData, navigate } = useAppNavigation();
   const { cartItems, refreshCartCount } = useCartCount();
+  const [categories, setCategories] = useState<any[]>([]);
   const [selectedSideCategory, setSelectedSideCategory] = useState(categoryData?.category || 'all');
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+  const [catLoading, setCatLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [localSearch, setLocalSearch ] = useState(categoryData?.search || '');
 
   useEffect(() => {
-    fetchProducts();
+    const fetchCats = async () => {
+      try {
+        const data = await getAllCategories();
+        setCategories(data);
+      } catch (err) {
+        console.error('Error loading sidebar categories:', err);
+      } finally {
+        setCatLoading(false);
+      }
+    };
+    fetchCats();
   }, []);
 
-  const fetchProducts = async () => {
+  useEffect(() => {
+    const delayDebounceFn = setTimeout(() => {
+      fetchProducts(selectedSideCategory, localSearch);
+    }, 500); // 500ms debounce for search
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [selectedSideCategory, localSearch]);
+
+  // Update local search and category if nav params change
+  useEffect(() => {
+    if (categoryData?.search !== undefined) {
+      setLocalSearch(categoryData.search);
+    }
+    if (categoryData?.category !== undefined) {
+        setSelectedSideCategory(categoryData.category);
+    }
+  }, [categoryData?.search, categoryData?.category]);
+
+  const fetchProducts = async (category?: string, search?: string) => {
     try {
       setLoading(true);
-      const data = await getAllProducts();
+      const data = await getFilteredProducts(category, search);
       setProducts(data);
       setError(null);
     } catch (err: any) {
@@ -77,49 +96,65 @@ const CategoryProducts = () => {
     }
   };
 
-  const filteredProducts = selectedSideCategory === 'all' 
-    ? products 
-    : products.filter(p => p.category.toLowerCase() === selectedSideCategory.toLowerCase());
+  // Filtering is now handled on the backend
+  const filteredProducts = products;
 
   return (
     <View style={styles.container}>
-      {/* Header */}
+      {/* Header with Search */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigate('HOME')} style={styles.backButton}>
            <Text style={styles.backIcon}>←</Text>
         </TouchableOpacity>
-        <View>
-          <Text style={styles.headerTitle}>Browse Products</Text>
-          <Text style={styles.headerSubtitle}>{filteredProducts.length} items available</Text>
+        <View style={styles.searchBarWrapper}>
+          <View style={styles.internalSearchBar}>
+            <Text style={styles.internalSearchIcon}>🔍</Text>
+            <TextInput 
+              placeholder="Search products..."
+              style={styles.internalSearchInput}
+              value={localSearch}
+              onChangeText={setLocalSearch}
+              placeholderTextColor="#999"
+            />
+            {localSearch !== '' && (
+              <TouchableOpacity onPress={() => setLocalSearch('')}>
+                <Text style={styles.clearText}>✕</Text>
+              </TouchableOpacity>
+            )}
+          </View>
         </View>
       </View>
 
       <View style={styles.mainContent}>
         {/* Left Sidebar */}
         <View style={styles.sidebar}>
-          <FlatList
-            data={SIDEBAR_CATEGORIES}
-            keyExtractor={(item) => item.id}
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={styles.sidebarListContent}
-            renderItem={({ item }) => {
-              const isActive = selectedSideCategory === item.id;
-              return (
-                <TouchableOpacity 
-                  style={[styles.sidebarItem, isActive && styles.sidebarItemActive]}
-                  onPress={() => setSelectedSideCategory(item.id)}
-                >
-                  <View style={[styles.sidebarIconBox, isActive && styles.sidebarIconBoxActive]}>
-                    <Text style={styles.sidebarIcon}>{item.icon}</Text>
-                  </View>
-                  <Text style={[styles.sidebarText, isActive && styles.sidebarTextActive]}>
-                    {item.title}
-                  </Text>
-                  {isActive && <View style={styles.activeIndicator} />}
-                </TouchableOpacity>
-              );
-            }}
-          />
+          {catLoading ? (
+            <ActivityIndicator size="small" color="#2E7D32" style={{ marginTop: 20 }} />
+          ) : (
+            <FlatList
+              data={categories}
+              keyExtractor={(item) => (item.id || item.tag || item.name).toString()}
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={styles.sidebarListContent}
+              renderItem={({ item }) => {
+                const isActive = selectedSideCategory === (item.tag || item.id || item.name);
+                return (
+                  <TouchableOpacity 
+                    style={[styles.sidebarItem, isActive && styles.sidebarItemActive]}
+                    onPress={() => setSelectedSideCategory(item.tag || item.id || item.name)}
+                  >
+                    <View style={[styles.sidebarIconBox, isActive && styles.sidebarIconBoxActive]}>
+                      <Text style={styles.sidebarIcon}>{item.icon || '📦'}</Text>
+                    </View>
+                    <Text style={[styles.sidebarText, isActive && styles.sidebarTextActive]} numberOfLines={1}>
+                      {item.name || item.title}
+                    </Text>
+                    {isActive && <View style={styles.activeIndicator} />}
+                  </TouchableOpacity>
+                );
+              }}
+            />
+          )}
         </View>
 
         {/* Product Grid */}
@@ -132,7 +167,7 @@ const CategoryProducts = () => {
           ) : error ? (
             <View style={styles.centerContainer}>
               <Text style={styles.errorText}>{error}</Text>
-              <TouchableOpacity style={styles.retryButton} onPress={fetchProducts}>
+              <TouchableOpacity style={styles.retryButton} onPress={() => fetchProducts(selectedSideCategory, localSearch)}>
                 <Text style={styles.retryText}>Retry</Text>
               </TouchableOpacity>
             </View>
@@ -153,7 +188,14 @@ const CategoryProducts = () => {
                   <Image source={{ uri: item.image }} style={styles.productImage} />
                   <View style={styles.productInfo}>
                     <Text style={styles.productName} numberOfLines={2}>{item.name}</Text>
-                    <Text style={styles.productWeight}>{item.weight}</Text>
+                    <View style={styles.cardTags}>
+                      <Text style={styles.productWeight}>{item.weight}</Text>
+                      <View style={styles.categoryBadge}>
+                          <Text style={styles.categoryBadgeText}>
+                            {item.category && typeof item.category === 'object' ? ((item.category as any).title || (item.category as any).name || (item.category as any).category) : (item.category || 'General')}
+                          </Text>
+                      </View>
+                    </View>
                     <View style={styles.priceRow}>
                       <Text style={styles.productPrice}>
                         ₹{item.price}
@@ -223,6 +265,35 @@ const styles = StyleSheet.create({
   headerSubtitle: {
     fontSize: 12,
     color: '#666',
+  },
+  searchBarWrapper: {
+    flex: 1,
+    marginRight: 15,
+  },
+  internalSearchBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F5F5F5',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    height: 40,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+  },
+  internalSearchIcon: {
+    marginRight: 8,
+    fontSize: 14,
+  },
+  internalSearchInput: {
+    flex: 1,
+    fontSize: 14,
+    color: '#333',
+    padding: 0,
+  },
+  clearText: {
+    fontSize: 18,
+    color: '#999',
+    paddingHorizontal: 5,
   },
   mainContent: {
     flex: 1,
@@ -394,6 +465,24 @@ const styles = StyleSheet.create({
   retryText: {
     color: '#fff',
     fontWeight: 'bold',
+  },
+  cardTags: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginVertical: 4,
+  },
+  categoryBadge: {
+    backgroundColor: '#F1F8E9',
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+    borderRadius: 4,
+  },
+  categoryBadgeText: {
+    fontSize: 8,
+    color: '#2E7D32',
+    fontWeight: 'bold',
+    textTransform: 'uppercase',
   },
   emptyText: {
     color: '#999',

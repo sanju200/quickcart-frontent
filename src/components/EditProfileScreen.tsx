@@ -14,7 +14,7 @@ import { useAppNavigation } from '../context/AppContext';
 import { getUserData, UserData, updateProfile, Address } from '../services/authentication.service';
 
 const EditProfileScreen = () => {
-  const { navigate, showToast } = useAppNavigation();
+  const { navigate, showToast, categoryData } = useAppNavigation();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   
@@ -57,7 +57,7 @@ const EditProfileScreen = () => {
       
       await updateProfile(updatedData);
       showToast('Profile updated successfully', 'success');
-      setTimeout(() => navigate('PROFILE'), 1000);
+      setTimeout(() => navigate(categoryData?.from || 'PROFILE'), 1000);
     } catch (error: any) {
       showToast(error.message || 'Failed to update profile', 'error');
     } finally {
@@ -87,7 +87,10 @@ const EditProfileScreen = () => {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigate('PROFILE')} style={styles.backButton}>
+        <TouchableOpacity 
+          onPress={() => navigate(categoryData?.from || 'PROFILE')} 
+          style={styles.backButton}
+        >
           <Text style={styles.backIcon}>←</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Edit Profile</Text>
@@ -225,7 +228,7 @@ const EditProfileScreen = () => {
 
           <TouchableOpacity 
             style={styles.cancelBtn} 
-            onPress={() => navigate('PROFILE')}
+            onPress={() => navigate(categoryData?.from || 'PROFILE')}
           >
             <Text style={styles.cancelBtnText}>Cancel</Text>
           </TouchableOpacity>
