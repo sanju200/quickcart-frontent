@@ -10,12 +10,27 @@ import {
 } from 'react-native';
 import { useAppNavigation } from '../context/AppContext';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { getAllCategories } from '../services/category.service';
+import { useEffect, useState } from 'react';
 
 const { width } = Dimensions.get('window');
 
 const AdminDashboardScreen = () => {
   const { navigate } = useAppNavigation();
   const insets = useSafeAreaInsets();
+  const [dashboardCategories, setDashboardCategories] = useState<any[]>([]);
+
+  useEffect(() => {
+    const fetchCats = async () => {
+      try {
+        const data = await getAllCategories();
+        setDashboardCategories(data.filter(c => c.id !== 'all'));
+      } catch (err) {
+        console.error('Error fetching dashboard categories:', err);
+      }
+    };
+    fetchCats();
+  }, []);
 
   const sections = [
     {
@@ -97,6 +112,34 @@ const AdminDashboardScreen = () => {
             </View>
           </View>
         ))}
+
+        {/* Shop By Category Section */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeaderRow}>
+            <Text style={styles.sectionTitle}>Shop By Category</Text>
+            <TouchableOpacity onPress={() => navigate('CATEGORY_PRODUCTS', { category: 'all' })}>
+              <Text style={styles.seeAllText}>See All →</Text>
+            </TouchableOpacity>
+          </View>
+          <ScrollView 
+            horizontal 
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.categoryScroll}
+          >
+            {dashboardCategories.map((cat, idx) => (
+              <TouchableOpacity 
+                key={cat.id} 
+                style={styles.categoryCard}
+                onPress={() => navigate('CATEGORY_PRODUCTS', { category: cat.tag || cat.id || cat.name })}
+              >
+                <View style={[styles.catIconBox, { backgroundColor: ['#F1F8E9', '#E3F2FD', '#FFF3E0', '#FCE4EC', '#F3E5F5'][idx % 5] }]}>
+                  <Text style={styles.catIcon}>{cat.icon || '📦'}</Text>
+                </View>
+                <Text style={styles.catName}>{cat.name}</Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
 
         {/* System Message */}
         <View style={styles.msgBox}>
@@ -236,7 +279,48 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#1565C0',
     lineHeight: 20,
-  }
+  },
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 15,
+  },
+  seeAllText: {
+    fontSize: 14,
+    color: '#2E7D32',
+    fontWeight: 'bold',
+  },
+  categoryScroll: {
+    paddingRight: 20,
+    gap: 15,
+  },
+  categoryCard: {
+    alignItems: 'center',
+    width: 80,
+  },
+  catIconBox: {
+    width: 65,
+    height: 65,
+    borderRadius: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  catIcon: {
+    fontSize: 28,
+  },
+  catName: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#333',
+    textAlign: 'center',
+  },
 });
 
 export default AdminDashboardScreen;

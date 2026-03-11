@@ -281,8 +281,8 @@ function AppContent({ fadeAnim }: { fadeAnim: Animated.Value }) {
       {showNavAndHeader && (
         <View style={[styles.bottomNav, { paddingBottom: safeAreaInsets.bottom || 15 }]}>
           <TouchableOpacity onPress={() => navigate('HOME')} style={styles.navItem}>
-            <Text style={[styles.navIcon, currentScreen === 'HOME' && styles.navActiveText]}>🏠</Text>
-            <Text style={[styles.navLabel, currentScreen === 'HOME' && styles.navActiveText]}>
+            <Text style={[styles.navIcon, (currentScreen === 'HOME' || currentScreen === 'ADMIN_DASHBOARD' || ['ADD_PRODUCT', 'INVENTORY_MANAGER', 'CATEGORY_MANAGER', 'OFFER_MANAGER', 'LOW_STOCK_DASHBOARD', 'LIVE_DELIVERY_MAP', 'PARTNER_ONBOARDING', 'COMMISSION_MANAGER', 'OPERATIONAL_CONTROL'].includes(currentScreen)) && styles.navActiveText]}>🏠</Text>
+            <Text style={[styles.navLabel, (currentScreen === 'HOME' || currentScreen === 'ADMIN_DASHBOARD' || ['ADD_PRODUCT', 'INVENTORY_MANAGER', 'CATEGORY_MANAGER', 'OFFER_MANAGER', 'LOW_STOCK_DASHBOARD', 'LIVE_DELIVERY_MAP', 'PARTNER_ONBOARDING', 'COMMISSION_MANAGER', 'OPERATIONAL_CONTROL'].includes(currentScreen)) && styles.navActiveText]}>
               {userRole?.toUpperCase() === 'USER' ? 'Home' : 'Terminal'}
             </Text>
           </TouchableOpacity>
@@ -320,10 +320,10 @@ function AppContent({ fadeAnim }: { fadeAnim: Animated.Value }) {
                 }} 
                 style={styles.navItem}
               >
-                <Text style={[styles.navIcon, (currentScreen === 'HELP_AND_SUPPORT' || currentScreen === 'EXECUTIVE_DASHBOARD') && styles.navActiveText]}>
+                <Text style={[styles.navIcon, (currentScreen === 'HELP_AND_SUPPORT' || currentScreen === 'EXECUTIVE_DASHBOARD' || currentScreen === 'FEEDBACK_CENTER' || currentScreen === 'DELIVERY_ANALYTICS') && styles.navActiveText]}>
                   {userRole?.toUpperCase() === 'ADMIN' ? '📊' : '🎧'}
                 </Text>
-                <Text style={[styles.navLabel, (currentScreen === 'HELP_AND_SUPPORT' || currentScreen === 'EXECUTIVE_DASHBOARD') && styles.navActiveText]}>
+                <Text style={[styles.navLabel, (currentScreen === 'HELP_AND_SUPPORT' || currentScreen === 'EXECUTIVE_DASHBOARD' || currentScreen === 'FEEDBACK_CENTER' || currentScreen === 'DELIVERY_ANALYTICS') && styles.navActiveText]}>
                   {userRole?.toUpperCase() === 'ADMIN' ? 'Insights' : 'Support'}
                 </Text>
               </TouchableOpacity>

@@ -34,7 +34,7 @@ const CategoryManagerScreen = () => {
     try {
       setLoading(true);
       const data = await getAllCategories();
-      setCategories(data);
+      setCategories(data.filter(c => c.id !== 'all'));
     } catch (error) {
       console.error('Failed to fetch categories:', error);
     } finally {
@@ -179,7 +179,8 @@ const CategoryManagerScreen = () => {
             data={categories}
             keyExtractor={(item) => item.id}
             renderItem={renderCategoryItem}
-            contentContainerStyle={styles.listContent}
+            scrollEnabled={true}
+            contentContainerStyle={{ paddingBottom: 120 }}
             ListEmptyComponent={
               <View style={styles.emptyContainer}>
                 <Text style={styles.emptyIcon}>📂</Text>

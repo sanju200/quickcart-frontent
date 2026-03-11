@@ -59,7 +59,9 @@ const LowStockDashboard = () => {
         <Image source={{ uri: item.image }} style={styles.productImg} />
         <View style={styles.productInfo}>
           <Text style={styles.productName}>{item.name}</Text>
-          <Text style={styles.productMeta}>{item.category} • ₹{item.price}</Text>
+          <Text style={styles.productMeta}>
+            {item.category && typeof item.category === 'object' ? ((item.category as any).title || (item.category as any).name || (item.category as any).category) : (item.category || 'General')} • ₹{item.price}
+          </Text>
           <View style={[styles.stockBadge, isCritical ? styles.criticalBadge : styles.warningBadge]}>
             <Text style={[styles.stockText, isCritical ? styles.criticalText : styles.warningText]}>
               Current Stock: {item.stock}

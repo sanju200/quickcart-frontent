@@ -134,7 +134,14 @@ const FilteredProductsScreen = () => {
                 <Image source={{ uri: item.image }} style={styles.productImage} />
                 <View style={styles.productInfo}>
                   <Text style={styles.productName} numberOfLines={2}>{item.name}</Text>
-                  <Text style={styles.productWeight}>{item.weight}</Text>
+                  <View style={styles.cardTags}>
+                    <Text style={styles.productWeight}>{item.weight}</Text>
+                    <View style={styles.categoryBadge}>
+                       <Text style={styles.categoryBadgeText}>
+                         {item.category && typeof item.category === 'object' ? ((item.category as any).title || (item.category as any).name || (item.category as any).category) : (item.category || 'General')}
+                       </Text>
+                    </View>
+                  </View>
                   <View style={styles.priceRow}>
                     <Text style={styles.productPrice}>₹{item.price}</Text>
                     {getProductQuantity(item.id) > 0 ? (
@@ -351,6 +358,24 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 12,
     fontWeight: 'bold',
+  },
+  cardTags: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginVertical: 4,
+  },
+  categoryBadge: {
+    backgroundColor: '#F1F8E9',
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+    borderRadius: 4,
+  },
+  categoryBadgeText: {
+    fontSize: 8,
+    color: '#2E7D32',
+    fontWeight: 'bold',
+    textTransform: 'uppercase',
   },
 });
 

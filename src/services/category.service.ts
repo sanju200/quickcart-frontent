@@ -2,7 +2,7 @@ import { Platform } from 'react-native';
 import { getAuthToken } from './authentication.service';
 
 const BASE_URL = Platform.OS === 'android' ? 'http://10.0.2.2:3000' : 'http://localhost:3000';
-const API_URL = `${BASE_URL}/category`;
+const API_URL = `${BASE_URL}/categories`;
 
 export interface Category {
     id: string;
@@ -33,7 +33,8 @@ export const getAllCategories = async (): Promise<Category[]> => {
             throw new Error(errorData.message || `Failed to fetch categories (Status: ${response.status})`);
         }
         const data = await response.json();
-        return Array.isArray(data) ? data : [];
+        const categories = Array.isArray(data) ? data : [];
+        return [{ id: 'all', name: 'All', icon: '🌟' } as any, ...categories];
     } catch (error: any) {
         console.error('Error fetching categories:', error);
         throw error;

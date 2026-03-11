@@ -12,31 +12,34 @@ import {
 } from 'react-native';
 import { useAppNavigation, useCartCount } from '../context/AppContext';
 import { getFilteredProducts, Product } from '../services/product.service';
+import { getAllCategories } from '../services/category.service';
 import { addToCart, handleCartQuantityChange, CartItem } from '../services/cart.service';
 import { Alert } from 'react-native';
-
-const SIDEBAR_CATEGORIES = [
-  { id: 'all', title: 'All', icon: '🌟' },
-  { id: 'fruits', title: 'Fruits', icon: '🍎' },
-  { id: 'veggies', title: 'Veggies', icon: '🥦' },
-  { id: 'dairy', title: 'Dairy', icon: '🥛' },
-  { id: 'snacks', title: 'Snacks', icon: '🍿' },
-  { id: 'beverages', title: 'Drinks', icon: '🥤' },
-  { id: 'frozen', title: 'Frozen', icon: '🍜' },
-  { id: 'spices', title: 'Spices', icon: '🌶️' },
-  { id: 'toys', title: 'Toys', icon: '🧸' },
-  { id: 'home_decor', title: 'Home Decor', icon: '🪴' },
-  
-];
 
 const CategoryProducts = () => {
   const { categoryData, navigate } = useAppNavigation();
   const { cartItems, refreshCartCount } = useCartCount();
+  const [categories, setCategories] = useState<any[]>([]);
   const [selectedSideCategory, setSelectedSideCategory] = useState(categoryData?.category || 'all');
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+  const [catLoading, setCatLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [localSearch, setLocalSearch ] = useState(categoryData?.search || '');
+
+  useEffect(() => {
+    const fetchCats = async () => {
+      try {
+        const data = await getAllCategories();
+        setCategories(data);
+      } catch (err) {
+        console.error('Error loading sidebar categories:', err);
+      } finally {
+        setCatLoading(false);
+      }
+    };
+    fetchCats();
+  }, []);
 
   useEffect(() => {
     const delayDebounceFn = setTimeout(() => {
@@ -125,29 +128,33 @@ const CategoryProducts = () => {
       <View style={styles.mainContent}>
         {/* Left Sidebar */}
         <View style={styles.sidebar}>
-          <FlatList
-            data={SIDEBAR_CATEGORIES}
-            keyExtractor={(item) => item.id}
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={styles.sidebarListContent}
-            renderItem={({ item }) => {
-              const isActive = selectedSideCategory === item.id;
-              return (
-                <TouchableOpacity 
-                  style={[styles.sidebarItem, isActive && styles.sidebarItemActive]}
-                  onPress={() => setSelectedSideCategory(item.id)}
-                >
-                  <View style={[styles.sidebarIconBox, isActive && styles.sidebarIconBoxActive]}>
-                    <Text style={styles.sidebarIcon}>{item.icon}</Text>
-                  </View>
-                  <Text style={[styles.sidebarText, isActive && styles.sidebarTextActive]}>
-                    {item.title}
-                  </Text>
-                  {isActive && <View style={styles.activeIndicator} />}
-                </TouchableOpacity>
-              );
-            }}
-          />
+          {catLoading ? (
+            <ActivityIndicator size="small" color="#2E7D32" style={{ marginTop: 20 }} />
+          ) : (
+            <FlatList
+              data={categories}
+              keyExtractor={(item) => (item.id || item.tag || item.name).toString()}
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={styles.sidebarListContent}
+              renderItem={({ item }) => {
+                const isActive = selectedSideCategory === (item.tag || item.id || item.name);
+                return (
+                  <TouchableOpacity 
+                    style={[styles.sidebarItem, isActive && styles.sidebarItemActive]}
+                    onPress={() => setSelectedSideCategory(item.tag || item.id || item.name)}
+                  >
+                    <View style={[styles.sidebarIconBox, isActive && styles.sidebarIconBoxActive]}>
+                      <Text style={styles.sidebarIcon}>{item.icon || '📦'}</Text>
+                    </View>
+                    <Text style={[styles.sidebarText, isActive && styles.sidebarTextActive]} numberOfLines={1}>
+                      {item.name || item.title}
+                    </Text>
+                    {isActive && <View style={styles.activeIndicator} />}
+                  </TouchableOpacity>
+                );
+              }}
+            />
+          )}
         </View>
 
         {/* Product Grid */}
@@ -181,7 +188,14 @@ const CategoryProducts = () => {
                   <Image source={{ uri: item.image }} style={styles.productImage} />
                   <View style={styles.productInfo}>
                     <Text style={styles.productName} numberOfLines={2}>{item.name}</Text>
-                    <Text style={styles.productWeight}>{item.weight}</Text>
+                    <View style={styles.cardTags}>
+                      <Text style={styles.productWeight}>{item.weight}</Text>
+                      <View style={styles.categoryBadge}>
+                          <Text style={styles.categoryBadgeText}>
+                            {item.category && typeof item.category === 'object' ? ((item.category as any).title || (item.category as any).name || (item.category as any).category) : (item.category || 'General')}
+                          </Text>
+                      </View>
+                    </View>
                     <View style={styles.priceRow}>
                       <Text style={styles.productPrice}>
                         ₹{item.price}
@@ -451,6 +465,24 @@ const styles = StyleSheet.create({
   retryText: {
     color: '#fff',
     fontWeight: 'bold',
+  },
+  cardTags: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginVertical: 4,
+  },
+  categoryBadge: {
+    backgroundColor: '#F1F8E9',
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+    borderRadius: 4,
+  },
+  categoryBadgeText: {
+    fontSize: 8,
+    color: '#2E7D32',
+    fontWeight: 'bold',
+    textTransform: 'uppercase',
   },
   emptyText: {
     color: '#999',

@@ -14,6 +14,7 @@ import {
 import { useAppNavigation } from '../context/AppContext';
 import { getAllOrders, updateOrderStatus, Order, OrderStatus } from '../services/order.service';
 import { getAllProducts, Product, updateProductStock } from '../services/product.service';
+import { getAllCategories } from '../services/category.service';
 
 const InventoryManagerScreen = () => {
   const { navigate } = useAppNavigation();
@@ -22,12 +23,22 @@ const InventoryManagerScreen = () => {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab ] = useState<'ORDERS' | 'INVENTORY'>('ORDERS');
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('All');
+  const [selectedCategory, setSelectedCategory] = useState('all');
   const [expandedOrders, setExpandedOrders] = useState<string[]>([]);
   const [stats, setStats] = useState({ pending: 0, processing: 0, lowStock: 0 });
+  const [categories, setCategories] = useState<any[]>([]);
 
   useEffect(() => {
     fetchData();
+    const fetchCats = async () => {
+      try {
+        const data = await getAllCategories();
+        setCategories(data);
+      } catch (err) {
+        console.error('Error loading inventory categories:', err);
+      }
+    };
+    fetchCats();
   }, [activeTab]);
 
   const fetchData = async () => {
@@ -197,7 +208,9 @@ const InventoryManagerScreen = () => {
             <Image source={{ uri: item.image }} style={styles.productImg} />
             <View style={styles.productInfo}>
                 <Text style={styles.productName}>{item.name}</Text>
-                <Text style={styles.productCategory}>{item.category} • ₹{item.price}</Text>
+                <Text style={styles.productCategory}>
+                    {item.category && typeof item.category === 'object' ? ((item.category as any).title || (item.category as any).name || (item.category as any).category) : (item.category || 'General')} • ₹{item.price}
+                </Text>
                 <View style={[styles.stockBadge, isLowStock ? styles.lowStockBg : styles.normalStockBg]}>
                     <Text style={[styles.stockText, isLowStock ? styles.lowStockText : styles.normalStockText]}>
                         Stock: {item.stock} {isLowStock ? '(Low Stock!)' : ''}
@@ -228,9 +241,16 @@ const InventoryManagerScreen = () => {
   );
 
   const filteredProducts = products.filter(p => {
+    const pCatId = typeof p.category === 'object' ? (p.category as any).id : (p as any).categoryId;
+    const catStr = typeof p.category === 'object' ? ((p.category as any).category || (p.category as any).title || (p.category as any).name || '') : (p.category || '');
+    
     const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                          p.category.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesCategory = selectedCategory === 'All' || p.category.toLowerCase() === selectedCategory.toLowerCase();
+                          catStr.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    const matchesCategory = selectedCategory === 'all' || selectedCategory === 'All' || 
+                           catStr.toLowerCase() === selectedCategory.toLowerCase() ||
+                           pCatId === selectedCategory;
+    
     return matchesSearch && matchesCategory;
   });
 
@@ -251,7 +271,7 @@ const InventoryManagerScreen = () => {
         </View>
       </View>
 
-      <ScrollView stickyHeaderIndices={[2]} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={{ paddingBottom: 120 }} stickyHeaderIndices={[2]} showsVerticalScrollIndicator={false}>
           {/* Stats Summary */}
           <View style={styles.statsContainer}>
               <View style={[styles.statCard, styles.pendingCard]}>
@@ -300,17 +320,21 @@ const InventoryManagerScreen = () => {
                 contentContainerStyle={styles.categoryFilterContainer}
                 style={{ marginBottom: 15 }}
             >
-                {['All', 'veggies', 'dairy', 'snacks', 'beverages', 'frozen', 'spices', 'home_decor', 'toys'].map(cat => (
-                    <TouchableOpacity 
-                        key={cat} 
-                        style={[styles.categoryChip, selectedCategory === cat && styles.activeCategoryChip]}
-                        onPress={() => setSelectedCategory(cat)}
-                    >
-                        <Text style={[styles.categoryChipText, selectedCategory === cat && styles.activeCategoryChipText]}>
-                            {cat.charAt(0).toUpperCase() + cat.slice(1)}
-                        </Text>
-                    </TouchableOpacity>
-                ))}
+                {categories.map(cat => {
+                    const catId = cat.tag || cat.id || cat.name;
+                    const displayLabel = cat.name || cat.title;
+                    return (
+                        <TouchableOpacity 
+                            key={catId} 
+                            style={[styles.categoryChip, selectedCategory === catId && styles.activeCategoryChip]}
+                            onPress={() => setSelectedCategory(catId)}
+                        >
+                            <Text style={[styles.categoryChipText, selectedCategory === catId && styles.activeCategoryChipText]}>
+                                {displayLabel}
+                            </Text>
+                        </TouchableOpacity>
+                    );
+                })}
             </ScrollView>
           )}
 

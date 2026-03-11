@@ -187,7 +187,7 @@ const styles = StyleSheet.create({
     marginBottom: 15,
   },
   listContent: {
-    paddingBottom: 40,
+    paddingBottom: 120,
   },
   partnerCard: {
     backgroundColor: '#fff',

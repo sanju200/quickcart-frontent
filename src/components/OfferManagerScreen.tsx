@@ -396,7 +396,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   listContent: {
-    paddingBottom: 40,
+    paddingBottom: 120,
   },
   offerCard: {
     backgroundColor: '#fff',

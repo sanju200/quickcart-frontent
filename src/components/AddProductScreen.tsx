@@ -13,22 +13,36 @@ import {
 } from 'react-native';
 import { useAppNavigation } from '../context/AppContext';
 import { createProduct } from '../services/product.service';
-
-const CATEGORIES = ['veggies', 'dairy', 'snacks', 'beverages', 'frozen', 'spices', 'home_decor', 'toys'];
+import { getAllCategories } from '../services/category.service';
 
 const AddProductScreen = () => {
   const { navigate, showToast } = useAppNavigation();
   const [loading, setLoading] = useState(false);
+  const [categories, setCategories] = useState<any[]>([]);
   
   const [name, setName] = useState('');
   const [price, setPrice] = useState('');
   const [weight, setWeight] = useState('');
   const [stock, setStock] = useState('');
-  const [category, setCategory] = useState('beverages');
+  const [category, setCategory] = useState('');
   const [imageUrl, setImageUrl] = useState('');
   const [useImageLink, setUseImageLink] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+
+  React.useEffect(() => {
+    const fetchCats = async () => {
+      try {
+        const data = await getAllCategories();
+        const filtered = data.filter(c => c.id !== 'all');
+        setCategories(filtered);
+        if (filtered.length > 0) setCategory(filtered[0].tag || filtered[0].id || filtered[0].name);
+      } catch (err) {
+        console.error('Error loading categories:', err);
+      }
+    };
+    fetchCats();
+  }, []);
 
   const handleCreateProduct = async () => {
     if (!name || !price || !weight || !category || (!useImageLink && !imageUrl) || (useImageLink && !imageUrl)) {
@@ -139,17 +153,20 @@ const AddProductScreen = () => {
                 showsHorizontalScrollIndicator={false} 
                 contentContainerStyle={styles.categoryChips}
             >
-              {CATEGORIES.map(cat => (
-                <TouchableOpacity 
-                  key={cat} 
-                  style={[styles.chip, category === cat && styles.activeChip]}
-                  onPress={() => setCategory(cat)}
-                >
-                  <Text style={[styles.chipText, category === cat && styles.activeChipText]}>
-                    {cat.charAt(0).toUpperCase() + cat.slice(1).replace('_', ' ')}
-                  </Text>
-                </TouchableOpacity>
-              ))}
+              {categories && categories.map(cat => {
+                const catValue = cat.tag || cat.id || cat.name;
+                return (
+                  <TouchableOpacity 
+                    key={catValue} 
+                    style={[styles.chip, category === catValue && styles.activeChip]}
+                    onPress={() => setCategory(catValue)}
+                  >
+                    <Text style={[styles.chipText, category === catValue && styles.activeChipText]}>
+                      {cat.name}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
             </ScrollView>
           </View>
 
@@ -252,7 +269,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: 20,
-    paddingBottom: 40,
+    paddingBottom: 100, // Increased to ensure visibility above bottom nav
   },
   form: {
     marginTop: 10,
