@@ -75,25 +75,38 @@ const InventoryManagerScreen = () => {
   };
 
   const handleProcessOrder = async (orderId: string, currentStatus: OrderStatus) => {
-    const nextStatus = currentStatus === 'PLACED' ? 'process' : 'handover';
-    const alertMsg = currentStatus === 'PLACED' 
-        ? 'Move this order to PROCESSING status?' 
-        : 'Order ready for HANDOVER to logistics?';
-
+    if (currentStatus !== 'PLACED') return;
+    
     Alert.alert(
       'Update Status',
-      alertMsg,
+      'Move this order to PROCESSING status and decrease inventory?',
       [
         { text: 'Cancel', style: 'cancel' },
         { 
           text: 'Proceed', 
           onPress: async () => {
             try {
-              await updateOrderStatus(orderId, nextStatus);
+              // Decrement stock for the order items
+              const orderToProcess = orders.find(o => o.id === orderId);
+              if (orderToProcess && orderToProcess.items) {
+                const allProducts = await getAllProducts(); // Fetch latest products
+                for (const item of orderToProcess.items) {
+                   const productId = item.productId || (item as any).product?.id;
+                   if (productId) {
+                      const matchedProduct = allProducts.find(p => p.id === productId);
+                      if (matchedProduct && matchedProduct.stock !== undefined) {
+                         const newStock = Math.max(0, matchedProduct.stock - item.quantity);
+                         await updateProductStock(productId, newStock);
+                      }
+                   }
+                }
+              }
+
+              await updateOrderStatus(orderId, 'process');
               fetchData(); // Refresh list
-              Alert.alert('Success', `Order status updated to ${nextStatus.toUpperCase()}`);
+              Alert.alert('Success', `Order status updated to PROCESSING and stock adjusted`);
             } catch (error: any) {
-              Alert.alert('Error', error.message || 'Failed to update order');
+              Alert.alert('Error', error.message || 'Failed to update order and stock');
             }
           }
         }
@@ -189,12 +202,9 @@ const InventoryManagerScreen = () => {
           )}
 
           {item.status === 'PROCESSING' && (
-            <TouchableOpacity 
-              style={[styles.actionBtn, styles.handoverBtn]} 
-              onPress={() => handleProcessOrder(item.id, item.status)}
-            >
-              <Text style={styles.actionBtnText}>Ready for Handover</Text>
-            </TouchableOpacity>
+            <View style={[styles.actionBtn, { backgroundColor: '#F5F5F5' }]}>
+              <Text style={[styles.actionBtnText, { color: '#999' }]}>Packing (Awaiting Logistics)</Text>
+            </View>
           )}
         </View>
       </View>
@@ -241,8 +251,8 @@ const InventoryManagerScreen = () => {
   );
 
   const filteredProducts = products.filter(p => {
-    const pCatId = typeof p.category === 'object' ? (p.category as any).id : (p as any).categoryId;
-    const catStr = typeof p.category === 'object' ? ((p.category as any).category || (p.category as any).title || (p.category as any).name || '') : (p.category || '');
+    const pCatId = (p.category && typeof p.category === 'object') ? (p.category as any).id : (p as any).categoryId;
+    const catStr = (p.category && typeof p.category === 'object') ? ((p.category as any).category || (p.category as any).title || (p.category as any).name || '') : (p.category || '');
     
     const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
                           catStr.toLowerCase().includes(searchQuery.toLowerCase());

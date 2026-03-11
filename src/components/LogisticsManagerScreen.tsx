@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { useAppNavigation } from '../context/AppContext';
 import { getAllOrders, updateOrderStatus, Order, OrderStatus } from '../services/order.service';
+import { getUserData } from '../services/authentication.service';
 
 const LogisticsManagerScreen = () => {
   const { navigate } = useAppNavigation();
@@ -77,7 +78,12 @@ const LogisticsManagerScreen = () => {
           text: 'Confirm', 
           onPress: async () => {
             try {
-              await updateOrderStatus(orderId, 'handover', { courierName, trackingNumber });
+              const user = await getUserData();
+              await updateOrderStatus(orderId, 'handover', { 
+                courierName, 
+                trackingNumber, 
+                assignedLogisticsId: user?.id 
+              });
               fetchData();
               Alert.alert('Success', 'Order handed over successfully');
             } catch (error: any) {
@@ -131,7 +137,11 @@ const LogisticsManagerScreen = () => {
             {isHandedOver && (
               <TouchableOpacity style={styles.transitBtn} onPress={async () => {
                 try {
-                  await updateOrderStatus(item.id, 'transit');
+                  const user = await getUserData();
+                  if (!user || (!user.id && !user.id)) {
+                      throw new Error("Unable to identify current logistics user");
+                  }
+                  await updateOrderStatus(item.id, 'transit', { assignedLogisticsId: user.id || user.id });
                   fetchData();
                   Alert.alert('Success', 'Order is now IN-TRANSIT');
                 } catch (error: any) {
