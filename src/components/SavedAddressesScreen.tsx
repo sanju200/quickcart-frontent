@@ -13,7 +13,7 @@ import { useAppNavigation } from '../context/AppContext';
 import { getUserData, updateProfile, Address, UserData } from '../services/authentication.service';
 
 const SavedAddressesScreen = () => {
-  const { navigate, showToast } = useAppNavigation();
+  const { navigate, showToast, categoryData } = useAppNavigation();
   const [user, setUser] = useState<UserData | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -196,7 +196,10 @@ const SavedAddressesScreen = () => {
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigate('PROFILE')} style={styles.backButton}>
+        <TouchableOpacity 
+          onPress={() => navigate(categoryData?.from || 'PROFILE')} 
+          style={styles.backButton}
+        >
           <Text style={styles.backIcon}>←</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Saved Addresses</Text>

@@ -7,10 +7,11 @@ import {
   Image,
   FlatList,
   Dimensions,
-  ActivityIndicator
+  ActivityIndicator,
+  TextInput
 } from 'react-native';
 import { useAppNavigation, useCartCount } from '../context/AppContext';
-import { getAllProducts, Product } from '../services/product.service';
+import { getFilteredProducts, Product } from '../services/product.service';
 import { addToCart, handleCartQuantityChange, CartItem } from '../services/cart.service';
 import { Alert } from 'react-native';
 
@@ -35,15 +36,30 @@ const CategoryProducts = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [localSearch, setLocalSearch ] = useState(categoryData?.search || '');
 
   useEffect(() => {
-    fetchProducts();
-  }, []);
+    const delayDebounceFn = setTimeout(() => {
+      fetchProducts(selectedSideCategory, localSearch);
+    }, 500); // 500ms debounce for search
 
-  const fetchProducts = async () => {
+    return () => clearTimeout(delayDebounceFn);
+  }, [selectedSideCategory, localSearch]);
+
+  // Update local search and category if nav params change
+  useEffect(() => {
+    if (categoryData?.search !== undefined) {
+      setLocalSearch(categoryData.search);
+    }
+    if (categoryData?.category !== undefined) {
+        setSelectedSideCategory(categoryData.category);
+    }
+  }, [categoryData?.search, categoryData?.category]);
+
+  const fetchProducts = async (category?: string, search?: string) => {
     try {
       setLoading(true);
-      const data = await getAllProducts();
+      const data = await getFilteredProducts(category, search);
       setProducts(data);
       setError(null);
     } catch (err: any) {
@@ -77,20 +93,32 @@ const CategoryProducts = () => {
     }
   };
 
-  const filteredProducts = selectedSideCategory === 'all' 
-    ? products 
-    : products.filter(p => p.category.toLowerCase() === selectedSideCategory.toLowerCase());
+  // Filtering is now handled on the backend
+  const filteredProducts = products;
 
   return (
     <View style={styles.container}>
-      {/* Header */}
+      {/* Header with Search */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigate('HOME')} style={styles.backButton}>
            <Text style={styles.backIcon}>←</Text>
         </TouchableOpacity>
-        <View>
-          <Text style={styles.headerTitle}>Browse Products</Text>
-          <Text style={styles.headerSubtitle}>{filteredProducts.length} items available</Text>
+        <View style={styles.searchBarWrapper}>
+          <View style={styles.internalSearchBar}>
+            <Text style={styles.internalSearchIcon}>🔍</Text>
+            <TextInput 
+              placeholder="Search products..."
+              style={styles.internalSearchInput}
+              value={localSearch}
+              onChangeText={setLocalSearch}
+              placeholderTextColor="#999"
+            />
+            {localSearch !== '' && (
+              <TouchableOpacity onPress={() => setLocalSearch('')}>
+                <Text style={styles.clearText}>✕</Text>
+              </TouchableOpacity>
+            )}
+          </View>
         </View>
       </View>
 
@@ -132,7 +160,7 @@ const CategoryProducts = () => {
           ) : error ? (
             <View style={styles.centerContainer}>
               <Text style={styles.errorText}>{error}</Text>
-              <TouchableOpacity style={styles.retryButton} onPress={fetchProducts}>
+              <TouchableOpacity style={styles.retryButton} onPress={() => fetchProducts(selectedSideCategory, localSearch)}>
                 <Text style={styles.retryText}>Retry</Text>
               </TouchableOpacity>
             </View>
@@ -223,6 +251,35 @@ const styles = StyleSheet.create({
   headerSubtitle: {
     fontSize: 12,
     color: '#666',
+  },
+  searchBarWrapper: {
+    flex: 1,
+    marginRight: 15,
+  },
+  internalSearchBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F5F5F5',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    height: 40,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+  },
+  internalSearchIcon: {
+    marginRight: 8,
+    fontSize: 14,
+  },
+  internalSearchInput: {
+    flex: 1,
+    fontSize: 14,
+    color: '#333',
+    padding: 0,
+  },
+  clearText: {
+    fontSize: 18,
+    color: '#999',
+    paddingHorizontal: 5,
   },
   mainContent: {
     flex: 1,

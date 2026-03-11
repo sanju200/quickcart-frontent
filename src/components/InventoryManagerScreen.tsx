@@ -22,6 +22,7 @@ const InventoryManagerScreen = () => {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab ] = useState<'ORDERS' | 'INVENTORY'>('ORDERS');
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('All');
   const [expandedOrders, setExpandedOrders] = useState<string[]>([]);
   const [stats, setStats] = useState({ pending: 0, processing: 0, lowStock: 0 });
 
@@ -226,21 +227,28 @@ const InventoryManagerScreen = () => {
     o.userName?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const filteredProducts = products.filter(p => 
-    p.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-    p.category.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredProducts = products.filter(p => {
+    const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                          p.category.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesCategory = selectedCategory === 'All' || p.category.toLowerCase() === selectedCategory.toLowerCase();
+    return matchesSearch && matchesCategory;
+  });
 
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigate('PROFILE')} style={styles.backButton}>
+        <TouchableOpacity onPress={() => navigate('HOME')} style={styles.backButton}>
           <Text style={styles.backIcon}>←</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Inventory Manager</Text>
-        <TouchableOpacity onPress={fetchData} style={styles.refreshBtn}>
-          <Text style={styles.refreshIcon}>🔄</Text>
-        </TouchableOpacity>
+        <View style={styles.headerActions}>
+          <TouchableOpacity onPress={() => navigate('ADD_PRODUCT')} style={styles.addProductBtn}>
+            <Text style={styles.addProductIcon}>+ Add</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={fetchData} style={styles.refreshBtn}>
+            <Text style={styles.refreshIcon}>🔄</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       <ScrollView stickyHeaderIndices={[2]} showsVerticalScrollIndicator={false}>
@@ -256,11 +264,14 @@ const InventoryManagerScreen = () => {
                   <Text style={styles.statNum}>{stats.processing}</Text>
                   <Text style={styles.statName}>Preparing</Text>
               </View>
-              <View style={[styles.statCard, styles.lowStockCard]}>
+              <TouchableOpacity 
+                style={[styles.statCard, styles.lowStockCard]}
+                onPress={() => navigate('LOW_STOCK_DASHBOARD')}
+              >
                   <Text style={styles.statEmoji}>📉</Text>
                   <Text style={styles.statNum}>{stats.lowStock}</Text>
                   <Text style={styles.statName}>Low Stock</Text>
-              </View>
+              </TouchableOpacity>
           </View>
 
           {/* Search Bar */}
@@ -280,6 +291,28 @@ const InventoryManagerScreen = () => {
                   )}
               </View>
           </View>
+
+          {/* Category Filter Bar (Only for Inventory tab) */}
+          {activeTab === 'INVENTORY' && (
+            <ScrollView 
+                horizontal 
+                showsHorizontalScrollIndicator={false} 
+                contentContainerStyle={styles.categoryFilterContainer}
+                style={{ marginBottom: 15 }}
+            >
+                {['All', 'veggies', 'dairy', 'snacks', 'beverages', 'frozen', 'spices', 'home_decor', 'toys'].map(cat => (
+                    <TouchableOpacity 
+                        key={cat} 
+                        style={[styles.categoryChip, selectedCategory === cat && styles.activeCategoryChip]}
+                        onPress={() => setSelectedCategory(cat)}
+                    >
+                        <Text style={[styles.categoryChipText, selectedCategory === cat && styles.activeCategoryChipText]}>
+                            {cat.charAt(0).toUpperCase() + cat.slice(1)}
+                        </Text>
+                    </TouchableOpacity>
+                ))}
+            </ScrollView>
+          )}
 
           {/* Tabs */}
           <View style={styles.tabWrapper}>
@@ -364,6 +397,24 @@ const styles = StyleSheet.create({
     color: '#000',
     flex: 1,
   },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  addProductBtn: {
+    backgroundColor: '#E8F5E9',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    marginRight: 10,
+    borderWidth: 1,
+    borderColor: '#C8E6C9',
+  },
+  addProductIcon: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#2E7D32',
+  },
   refreshBtn: {
     padding: 5,
   },
@@ -410,6 +461,12 @@ const styles = StyleSheet.create({
   searchIcon: { fontSize: 16, marginRight: 8 },
   searchInput: { flex: 1, fontSize: 14, color: '#333' },
   clearIcon: { fontSize: 16, color: '#999', padding: 4 },
+
+  categoryFilterContainer: { paddingHorizontal: 15, paddingBottom: 15, gap: 10 },
+  categoryChip: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, backgroundColor: '#fff', borderWidth: 1, borderColor: '#ddd' },
+  activeCategoryChip: { backgroundColor: '#2E7D32', borderColor: '#2E7D32' },
+  categoryChipText: { fontSize: 13, color: '#666', fontWeight: '500' },
+  activeCategoryChipText: { color: '#fff', fontWeight: 'bold' },
 
   tabWrapper: { backgroundColor: '#F7F9F7', paddingHorizontal: 15, paddingBottom: 10 },
   tabBar: {

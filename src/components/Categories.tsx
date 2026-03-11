@@ -16,14 +16,14 @@ import { useEffect } from 'react';
 import { Alert } from 'react-native';
 
 const CATEGORY_TABS = [
-  { id: '1', title: 'All Products', icon: '🏠' },
-  { id: '2', title: 'Best Sellers', icon: '🔥' },
-  { id: '3', title: 'Fresh Arrivals', icon: '🌟' },
-  { id: '4', title: 'Under ₹99', icon: '💰' },
-  { id: '5', title: 'Healthy Options', icon: '🥗' },
-  { id: '6', title: 'Organic', icon: '🌿' },
-  { id: '7', title: 'Premium', icon: '👑' },
-  { id: '8', title: 'Combo Deals', icon: '🎁' },
+  { id: '1', title: 'All Products', icon: '🏠', category: 'all' },
+  { id: '2', title: 'Best Sellers', icon: '🔥', tag: 'best_seller' },
+  { id: '3', title: 'Fresh Arrivals', icon: '🌟', tag: 'fresh' },
+  { id: '4', title: 'Under ₹99', icon: '💰', tag: 'under_99' },
+  { id: '5', title: 'Healthy', icon: '🥗', tag: 'healthy' },
+  { id: '6', title: 'Organic', icon: '🌿', tag: 'organic' },
+  { id: '7', title: 'Premium', icon: '👑', tag: 'premium' },
+  { id: '8', title: 'Combos', icon: '🎁', tag: 'combo' },
 ];
 
 const CATEGORY_GRID = [
@@ -140,7 +140,14 @@ const Categories = () => {
                 styles.tab,
                 isActive ? styles.tabActive : styles.tabInactive,
               ]}
-              onPress={() => setActiveTab(item.id)}
+              onPress={() => {
+                setActiveTab(item.id);
+                navigate('FILTERED_PRODUCTS', { 
+                  category: (item as any).category || 'all', 
+                  tag: (item as any).tag || '',
+                  title: item.title
+                });
+              }}
             >
               <Text style={styles.tabIcon}>{item.icon}</Text>
               <Text
