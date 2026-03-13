@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   StyleSheet,
   View,
@@ -11,7 +11,8 @@ import {
 import { useAppNavigation } from '../context/AppContext';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { getAllCategories } from '../services/category.service';
-import { useEffect, useState } from 'react';
+import { getAdminStats, AdminStats } from '../services/admin.service';
+
 
 const { width } = Dimensions.get('window');
 
@@ -19,43 +20,60 @@ const AdminDashboardScreen = () => {
   const { navigate } = useAppNavigation();
   const insets = useSafeAreaInsets();
   const [dashboardCategories, setDashboardCategories] = useState<any[]>([]);
+  const [stats, setStats] = useState<AdminStats>({
+    totalRevenue: 0,
+    activeOrders: 0,
+    totalUsers: 0,
+    pendingOrders: 0,
+    lowStockItems: 0,
+  });
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchCats = async () => {
+    const fetchData = async () => {
       try {
-        const data = await getAllCategories();
-        setDashboardCategories(data.filter(c => c.id !== 'all'));
+        setLoading(true);
+        const [cats, adminStats] = await Promise.all([
+          getAllCategories(),
+          getAdminStats()
+        ]);
+        setDashboardCategories(cats.filter(c => c.id !== 'all'));
+        setStats(adminStats);
       } catch (err) {
-        console.error('Error fetching dashboard categories:', err);
+        console.error('Error fetching admin dashboard data:', err);
+      } finally {
+        setLoading(false);
       }
     };
-    fetchCats();
+    fetchData();
   }, []);
 
   const sections = [
     {
+      title: 'Control Center',
+      items: [
+        { id: 'users', title: 'User Directory', icon: '👥', color: '#E8F5E9', screen: 'USER_MANAGER' },
+        { id: 'sales', title: 'Sales Ledger', icon: '🧾', color: '#E3F2FD', screen: 'SALES_MANAGER' },
+        { id: 'exec', title: 'Analytics', icon: '📊', color: '#E8EAF6', screen: 'EXECUTIVE_DASHBOARD' },
+        { id: 'ops', title: 'Operations', icon: '⚙️', color: '#ECEFF1', screen: 'OPERATIONAL_CONTROL' },
+      ]
+    },
+    {
       title: 'Inventory & Growth',
       items: [
-        { id: 'add', title: 'Add Product', icon: '➕', color: '#E8F5E9', screen: 'ADD_PRODUCT' },
-        { id: 'cat', title: 'Categories', icon: '📂', color: '#E3F2FD', screen: 'CATEGORY_MANAGER' },
-        { id: 'off', title: 'Offers', icon: '🎟️', color: '#FFF3E0', screen: 'OFFER_MANAGER' },
+        { id: 'add', title: 'Add Product', icon: '➕', color: '#FFF3E0', screen: 'ADD_PRODUCT' },
+        { id: 'cat', title: 'Categories', icon: '📂', color: '#F3E5F5', screen: 'CATEGORY_MANAGER' },
+        { id: 'off', title: 'Offers', icon: '🎟️', color: '#E0F2F1', screen: 'OFFER_MANAGER' },
         { id: 'low', title: 'Low Stock', icon: '📉', color: '#FFEBEE', screen: 'LOW_STOCK_DASHBOARD' },
       ]
     },
     {
       title: 'Logistics & Fleet',
       items: [
-        { id: 'map', title: 'Live Map', icon: '🗺️', color: '#F3E5F5', screen: 'LIVE_DELIVERY_MAP' },
+        { id: 'map', title: 'Live Map', icon: '📍', color: '#F1F8E9', screen: 'LIVE_DELIVERY_MAP' },
         { id: 'onboard', title: 'Partners', icon: '🤝', color: '#E0F2F1', screen: 'PARTNER_ONBOARDING' },
         { id: 'comm', title: 'Commission', icon: '💰', color: '#F1F8E9', screen: 'COMMISSION_MANAGER' },
-      ]
-    },
-    {
-      title: 'Business Insights',
-      items: [
-        { id: 'exec', title: 'Analytics', icon: '📊', color: '#E8EAF6', screen: 'EXECUTIVE_DASHBOARD' },
         { id: 'feed', title: 'Feedback', icon: '💬', color: '#FFFDE7', screen: 'FEEDBACK_CENTER' },
-        { id: 'ops', title: 'Operations', icon: '⚙️', color: '#ECEFF1', screen: 'OPERATIONAL_CONTROL' },
       ]
     }
   ];
@@ -80,16 +98,22 @@ const AdminDashboardScreen = () => {
       >
         {/* Quick Stats */}
         <View style={styles.statsContainer}>
-          <View style={styles.statCard}>
-            <Text style={styles.statLabel}>Today's Sales</Text>
-            <Text style={styles.statValue}>₹42.5K</Text>
-            <Text style={styles.statTrend}>↑ 12%</Text>
-          </View>
-          <View style={styles.statCard}>
+          <TouchableOpacity 
+            style={styles.statCard}
+            onPress={() => navigate('SALES_MANAGER')}
+          >
+            <Text style={styles.statLabel}>Today's Revenue</Text>
+            <Text style={styles.statValue}>₹{stats.totalRevenue.toLocaleString()}</Text>
+            <Text style={styles.statTrend}>↑ 12% vs yesterday</Text>
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={styles.statCard}
+            onPress={() => navigate('SALES_MANAGER')}
+          >
             <Text style={styles.statLabel}>Active Orders</Text>
-            <Text style={styles.statValue}>128</Text>
-            <Text style={styles.statTrend}>↑ 5%</Text>
-          </View>
+            <Text style={styles.statValue}>{stats.activeOrders}</Text>
+            <Text style={styles.statTrend}>↑ {stats.pendingOrders} pending</Text>
+          </TouchableOpacity>
         </View>
 
         {/* Modules Grid */}
