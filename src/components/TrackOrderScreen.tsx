@@ -30,6 +30,7 @@ const TrackOrderScreen = ({ orderId }: TrackOrderScreenProps) => {
 
   // Fallback to orderId from categoryData if prop is not passed (common in this app's navigation)
   const id = orderId || categoryData?.orderId;
+  const navigateBackTo = categoryData?.from || 'ORDERS';
 
   useEffect(() => {
     const fetchOrder = async () => {
@@ -57,7 +58,7 @@ const TrackOrderScreen = ({ orderId }: TrackOrderScreenProps) => {
     return (
       <View style={styles.centerContainer}>
         <Text style={styles.errorText}>Order not found</Text>
-        <TouchableOpacity style={styles.backBtn} onPress={() => navigate('ORDERS')}>
+        <TouchableOpacity style={styles.backBtn} onPress={() => navigate(navigateBackTo)}>
           <Text style={styles.backBtnText}>Go Back</Text>
         </TouchableOpacity>
       </View>
@@ -69,7 +70,7 @@ const TrackOrderScreen = ({ orderId }: TrackOrderScreenProps) => {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigate('ORDERS')} style={styles.backButton}>
+        <TouchableOpacity onPress={() => navigate(navigateBackTo)} style={styles.backButton}>
           <Text style={styles.backIcon}>←</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Track Order</Text>
