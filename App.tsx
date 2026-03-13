@@ -51,6 +51,8 @@ import OperationalControlScreen from './src/components/OperationalControlScreen'
 import AdminDashboardScreen from './src/components/AdminDashboardScreen';
 import LogisticsManagerScreen from './src/components/LogisticsManagerScreen';
 import DeliveryPartnerScreen from './src/components/DeliveryPartnerScreen';
+import UserManagerScreen from './src/components/UserManagerScreen';
+import SalesManagerScreen from './src/components/SalesManagerScreen';
 import NotFoundScreen from './src/components/NotFoundScreen';
 import ToastNotification from './src/components/ToastNotification';
 import { getAuthToken, getUserData } from './src/services/authentication.service';
@@ -175,96 +177,6 @@ function AppContent({ fadeAnim }: { fadeAnim: Animated.Value }) {
   const { currentScreen, navigate, categoryData, userRole } = useContext(NavigationContext)!;
   const { cartItems, cartCount, refreshCartCount } = useContext(CartContext)!;
 
-  const renderScreen = () => {
-    switch (currentScreen) {
-      case 'HOME':
-        if (userRole?.toUpperCase() === 'ADMIN') return <AdminDashboardScreen />;
-        if (userRole?.toUpperCase() === 'DELIVERY_PARTNER') return <DeliveryPartnerScreen />;
-        if (userRole?.toUpperCase() === 'INVENTORY_MANAGER') return <InventoryManagerScreen />;
-        if (userRole?.toUpperCase() === 'LOGISTICS_PARTNER') return <LogisticsManagerScreen />;
-        
-        return (
-          <ScrollView 
-            style={styles.scrollView}
-            contentContainerStyle={styles.scrollContentContainer}
-            showsVerticalScrollIndicator={false}
-            scrollEventThrottle={16}
-          >
-            <View style={styles.content}>
-              <Carousel />
-              <Features />
-              <Categories />
-              {/* No empty boxes here anymore */}
-              <View style={{ height: 120 }} />
-            </View>
-          </ScrollView>
-        );
-      case 'CATEGORY_PRODUCTS':
-        return <CategoryProducts />;
-      case 'FILTERED_PRODUCTS':
-        return <FilteredProductsScreen />;
-      case 'PROFILE':
-        return <ProfileScreen />;
-      case 'EDIT_PROFILE':
-        return <EditProfileScreen />;
-      case 'SAVED_ADDRESSES':
-        return <SavedAddressesScreen />;
-      case 'CONTACT_DETAILS':
-        return <ContactDetailsScreen />;
-
-      case 'ORDERS':
-        return <OrdersScreen />;
-      case 'CART':
-        return <CartScreen />;
-      case 'PAYMENTS':
-        return <PaymentsScreen />;
-      case 'LOGIN':
-        return <LoginScreen />;
-      case 'SIGNUP':
-        return <SignupScreen />;
-      case 'NOT_FOUND':
-        return <NotFoundScreen />;
-      case 'PREVIOUSLY_ORDERED':
-        return <PreviouslyOrderedProducts />;
-      case 'HELP_AND_SUPPORT':
-        return <HelpAndSupportScreen />;
-      case 'TRACK_ORDER':
-        return <TrackOrderScreen orderId={categoryData?.orderId} />;
-      case 'INVENTORY_MANAGER':
-        return <InventoryManagerScreen />;
-      case 'ADD_PRODUCT':
-        return <AddProductScreen />;
-      case 'CATEGORY_MANAGER':
-        return <CategoryManagerScreen />;
-      case 'OFFER_MANAGER':
-        return <OfferManagerScreen />;
-      case 'LOW_STOCK_DASHBOARD':
-        return <LowStockDashboard />;
-      case 'LIVE_DELIVERY_MAP':
-        return <LiveDeliveryMap />;
-      case 'PARTNER_ONBOARDING':
-        return <PartnerOnboardingScreen />;
-      case 'COMMISSION_MANAGER':
-        return <CommissionManagerScreen />;
-      case 'EXECUTIVE_DASHBOARD':
-        return <ExecutiveDashboard />;
-      case 'FEEDBACK_CENTER':
-        return <FeedbackCenterScreen />;
-      case 'DELIVERY_ANALYTICS':
-        return <DeliveryAnalyticsScreen />;
-      case 'OPERATIONAL_CONTROL':
-        return <OperationalControlScreen />;
-      case 'ADMIN_DASHBOARD':
-        return <AdminDashboardScreen />;
-      case 'LOGISTICS_PARTNER':
-        return <LogisticsManagerScreen />;
-      case 'DELIVERY_PARTNER':
-        return <DeliveryPartnerScreen />;
-      default:
-        return <NotFoundScreen />;
-    }
-  };
-
   const showNavAndHeader = !['LOGIN', 'SIGNUP', 'NOT_FOUND'].includes(currentScreen);
 
   return (
@@ -274,7 +186,7 @@ function AppContent({ fadeAnim }: { fadeAnim: Animated.Value }) {
 
       {/* Main Content with Fade Transition */}
       <Animated.View style={[styles.screenContainer, { opacity: fadeAnim }]}>
-        {renderScreen()}
+        <AppScreen currentScreen={currentScreen} userRole={userRole} categoryData={categoryData} />
       </Animated.View>
 
       {/* Sticky Bottom Nav with Icons and Labels */}
@@ -446,5 +358,97 @@ const styles = StyleSheet.create({
     fontSize: 16,
   }
 });
+
+function AppScreen({ currentScreen, userRole, categoryData }: { currentScreen: Screen, userRole: string | null, categoryData: any }) {
+  switch (currentScreen) {
+    case 'HOME':
+      if (userRole?.toUpperCase() === 'ADMIN') return <AdminDashboardScreen />;
+      if (userRole?.toUpperCase() === 'DELIVERY_PARTNER') return <DeliveryPartnerScreen />;
+      if (userRole?.toUpperCase() === 'INVENTORY_MANAGER') return <InventoryManagerScreen />;
+      if (userRole?.toUpperCase() === 'LOGISTICS_PARTNER') return <LogisticsManagerScreen />;
+      
+      return (
+        <ScrollView 
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContentContainer}
+          showsVerticalScrollIndicator={false}
+          scrollEventThrottle={16}
+        >
+          <View style={styles.content}>
+            <Carousel />
+            <Features />
+            <Categories />
+            <View style={{ height: 120 }} />
+          </View>
+        </ScrollView>
+      );
+    case 'CATEGORY_PRODUCTS':
+      return <CategoryProducts />;
+    case 'FILTERED_PRODUCTS':
+      return <FilteredProductsScreen />;
+    case 'PROFILE':
+      return <ProfileScreen />;
+    case 'EDIT_PROFILE':
+      return <EditProfileScreen />;
+    case 'SAVED_ADDRESSES':
+      return <SavedAddressesScreen />;
+    case 'CONTACT_DETAILS':
+      return <ContactDetailsScreen />;
+    case 'ORDERS':
+      return <OrdersScreen />;
+    case 'CART':
+      return <CartScreen />;
+    case 'PAYMENTS':
+      return <PaymentsScreen />;
+    case 'LOGIN':
+      return <LoginScreen />;
+    case 'SIGNUP':
+      return <SignupScreen />;
+    case 'NOT_FOUND':
+      return <NotFoundScreen />;
+    case 'PREVIOUSLY_ORDERED':
+      return <PreviouslyOrderedProducts />;
+    case 'HELP_AND_SUPPORT':
+      return <HelpAndSupportScreen />;
+    case 'TRACK_ORDER':
+      return <TrackOrderScreen orderId={categoryData?.orderId} />;
+    case 'INVENTORY_MANAGER':
+      return <InventoryManagerScreen />;
+    case 'ADD_PRODUCT':
+      return <AddProductScreen />;
+    case 'CATEGORY_MANAGER':
+      return <CategoryManagerScreen />;
+    case 'OFFER_MANAGER':
+      return <OfferManagerScreen />;
+    case 'LOW_STOCK_DASHBOARD':
+      return <LowStockDashboard />;
+    case 'LIVE_DELIVERY_MAP':
+      return <LiveDeliveryMap />;
+    case 'PARTNER_ONBOARDING':
+      return <PartnerOnboardingScreen />;
+    case 'COMMISSION_MANAGER':
+      return <CommissionManagerScreen />;
+    case 'EXECUTIVE_DASHBOARD':
+      return <ExecutiveDashboard />;
+    case 'FEEDBACK_CENTER':
+      return <FeedbackCenterScreen />;
+    case 'DELIVERY_ANALYTICS':
+      return <DeliveryAnalyticsScreen />;
+    case 'OPERATIONAL_CONTROL':
+      return <OperationalControlScreen />;
+    case 'ADMIN_DASHBOARD':
+      return <AdminDashboardScreen />;
+    case 'LOGISTICS_PARTNER':
+      return <LogisticsManagerScreen />;
+    case 'DELIVERY_PARTNER':
+      return <DeliveryPartnerScreen />;
+    case 'USER_MANAGER':
+      return <UserManagerScreen />;
+    case 'SALES_MANAGER':
+      return <SalesManagerScreen />;
+    default:
+      return <NotFoundScreen />;
+  }
+}
 
 export default App;
