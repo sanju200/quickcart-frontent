@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   StyleSheet,
   View,
@@ -9,17 +9,38 @@ import {
 } from 'react-native';
 import { useAppNavigation } from '../context/AppContext';
 
+import { getAdminStats, AdminStats } from '../services/admin.service';
+
 const { width } = Dimensions.get('window');
 
 const ExecutiveDashboard = () => {
   const { navigate, showToast } = useAppNavigation();
   const [timeRange, setTimeRange] = useState<'7D' | '30D' | '1Y'>('7D');
+  const [statsData, setStatsData] = useState<AdminStats | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const data = await getAdminStats();
+        setStatsData(data);
+      } catch (err) {
+        console.error('Error fetching admin stats:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
 
   const stats = [
-    { label: 'Revenue', value: '₹1.2L', trend: '+12%', color: '#2E7D32' },
-    { label: 'Orders', value: '842', trend: '+5%', color: '#1976D2' },
-    { label: 'Avg Order', value: '₹142', trend: '-2%', color: '#FFA000' },
-    { label: 'Customers', value: '1.2K', trend: '+18%', color: '#7B1FA2' },
+    { label: 'Revenue', value: statsData ? `₹${(statsData.totalRevenue / 1000).toFixed(1)}K` : '₹0', trend: '+12%', color: '#2E7D32' },
+    { label: 'Orders', value: statsData ? statsData.activeOrders + statsData.pendingOrders : '0', trend: '+5%', color: '#1976D2' },
+    { label: 'Avg Order', value: statsData && (statsData.activeOrders + statsData.pendingOrders) > 0 
+        ? `₹${Math.round(statsData.totalRevenue / (statsData.activeOrders + statsData.pendingOrders))}` 
+        : '₹0', trend: '-2%', color: '#FFA000' },
+    { label: 'Customers', value: statsData ? statsData.totalUsers : '0', trend: '+18%', color: '#7B1FA2' },
   ];
 
   return (
