@@ -1,5 +1,5 @@
 import { Platform } from 'react-native';
-import { getAuthToken } from './authentication.service';
+import { getAuthToken, getUserData } from './authentication.service';
 
 const BASE_URL = Platform.OS === 'android' ? 'http://10.0.2.2:3000' : 'http://localhost:3000';
 const API_URL = `${BASE_URL}/admin`;
@@ -23,6 +23,17 @@ export interface AdminUser {
 
 export const getAdminStats = async (): Promise<AdminStats> => {
     try {
+        const userData = await getUserData();
+        if (userData?.role !== 'ADMIN') {
+            return {
+                totalRevenue: 0,
+                activeOrders: 0,
+                totalUsers: 0,
+                pendingOrders: 0,
+                lowStockItems: 0
+            };
+        }
+
         const token = await getAuthToken();
         const response = await fetch(`${API_URL}/stats`, {
             method: 'GET',
