@@ -138,7 +138,7 @@ const FilteredProductsScreen = () => {
                     <Text style={styles.productWeight}>{item.weight}</Text>
                     <View style={styles.categoryBadge}>
                        <Text style={styles.categoryBadgeText}>
-                         {item.category && typeof item.category === 'object' ? ((item.category as any).title || (item.category as any).name || (item.category as any).category) : (item.category || 'General')}
+                         {item.categoryId && typeof item.categoryId === 'object' ? ((item.categoryId as any).title || (item.categoryId as any).name || (item.categoryId as any).category) : (item.categoryId || 'General')}
                        </Text>
                     </View>
                   </View>
