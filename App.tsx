@@ -178,11 +178,20 @@ function AppContent({ fadeAnim }: { fadeAnim: Animated.Value }) {
   const { cartItems, cartCount, refreshCartCount } = useContext(CartContext)!;
 
   const showNavAndHeader = !['LOGIN', 'SIGNUP', 'NOT_FOUND'].includes(currentScreen);
+  const showHeader = [
+    'HOME', 
+    'ADMIN_DASHBOARD', 
+    'INVENTORY_MANAGER', 
+    'LOGISTICS_PARTNER', 
+    'DELIVERY_PARTNER',
+    'USER_MANAGER',
+    'SALES_MANAGER'
+  ].includes(currentScreen);
 
   return (
     <View style={[styles.container, { paddingTop: safeAreaInsets.top }]}>
-      {/* Sticky Top Header - Only show on Home screen to avoid double headers */}
-      {currentScreen === 'HOME' && <Header />}
+      {/* Sticky Top Header - Show on Home and Dashboard screens */}
+      {showHeader && <Header />}
 
       {/* Main Content with Fade Transition */}
       <Animated.View style={[styles.screenContainer, { opacity: fadeAnim }]}>
