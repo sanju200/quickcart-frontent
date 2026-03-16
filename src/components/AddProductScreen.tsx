@@ -10,13 +10,16 @@ import {
   KeyboardAvoidingView,
   Platform,
   Image,
+  Modal,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppNavigation } from '../context/AppContext';
 import { createProduct } from '../services/product.service';
 import { getAllCategories } from '../services/category.service';
 
 const AddProductScreen = () => {
-  const { navigate, showToast } = useAppNavigation();
+  const { navigate, showToast, userRole } = useAppNavigation();
+  const insets = useSafeAreaInsets();
   const [loading, setLoading] = useState(false);
   const [categories, setCategories] = useState<any[]>([]);
   
@@ -24,7 +27,8 @@ const AddProductScreen = () => {
   const [price, setPrice] = useState('');
   const [weight, setWeight] = useState('');
   const [stock, setStock] = useState('');
-  const [category, setCategory] = useState('');
+  const [selectedCategoryId, setSelectedCategoryId] = useState('');
+  const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [imageUrl, setImageUrl] = useState('');
   const [useImageLink, setUseImageLink] = useState(true);
   const [uploading, setUploading] = useState(false);
@@ -36,7 +40,7 @@ const AddProductScreen = () => {
         const data = await getAllCategories();
         const filtered = data.filter(c => c.id !== 'all');
         setCategories(filtered);
-        if (filtered.length > 0) setCategory(filtered[0].tag || filtered[0].id || filtered[0].name);
+        if (filtered.length > 0) setSelectedCategoryId(filtered[0].id);
       } catch (err) {
         console.error('Error loading categories:', err);
       }
@@ -44,8 +48,18 @@ const AddProductScreen = () => {
     fetchCats();
   }, []);
 
+  const getDashboardByRole = (): any => {
+    switch (userRole) {
+      case 'ADMIN': return 'ADMIN_DASHBOARD';
+      case 'INVENTORY_MANAGER': return 'INVENTORY_MANAGER';
+      case 'DELIVERY_PARTNER': return 'DELIVERY_PARTNER';
+      case 'LOGISTICS_PARTNER': return 'LOGISTICS_PARTNER';
+      default: return 'HOME';
+    }
+  };
+
   const handleCreateProduct = async () => {
-    if (!name || !price || !weight || !category || (!useImageLink && !imageUrl) || (useImageLink && !imageUrl)) {
+    if (!name || !price || !weight || !selectedCategoryId || (!useImageLink && !imageUrl) || (useImageLink && !imageUrl)) {
       showToast('Please fill all fields', 'error');
       return;
     }
@@ -54,14 +68,15 @@ const AddProductScreen = () => {
     try {
       await createProduct({
         name,
-        price,
+        price: parseFloat(price),
         weight,
-        category,
+        categoryId: selectedCategoryId,
         image: imageUrl,
         stock: parseInt(stock) || 0,
       });
       showToast('Product added successfully!', 'success');
-      setTimeout(() => navigate('INVENTORY_MANAGER'), 1000);
+      setTimeout(() => navigate(getDashboardByRole()), 1000);
+           
     } catch (error: any) {
       showToast(error.message || 'Failed to add product', 'error');
     } finally {
@@ -90,8 +105,11 @@ const AddProductScreen = () => {
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigate('HOME')} style={styles.backButton}>
+      <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
+        <TouchableOpacity 
+          onPress={() => navigate(getDashboardByRole())} 
+          style={styles.backButton}
+        >
           <Text style={styles.backIcon}>←</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Add New Product</Text>
@@ -148,26 +166,63 @@ const AddProductScreen = () => {
 
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Category</Text>
-            <ScrollView 
-                horizontal 
-                showsHorizontalScrollIndicator={false} 
-                contentContainerStyle={styles.categoryChips}
+            <TouchableOpacity 
+              style={styles.dropdownTrigger}
+              onPress={() => setShowCategoryModal(true)}
             >
-              {categories && categories.map(cat => {
-                const catValue = cat.tag || cat.id || cat.name;
-                return (
-                  <TouchableOpacity 
-                    key={catValue} 
-                    style={[styles.chip, category === catValue && styles.activeChip]}
-                    onPress={() => setCategory(catValue)}
-                  >
-                    <Text style={[styles.chipText, category === catValue && styles.activeChipText]}>
-                      {cat.name}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </ScrollView>
+              <Text style={styles.dropdownTriggerText}>
+                {categories.find(c => c.id === selectedCategoryId)?.title || 'Select Category'}
+              </Text>
+              <Text style={styles.dropdownArrow}>▼</Text>
+            </TouchableOpacity>
+
+            <Modal
+              visible={showCategoryModal}
+              transparent={true}
+              animationType="slide"
+              onRequestClose={() => setShowCategoryModal(false)}
+            >
+              <TouchableOpacity 
+                style={styles.modalOverlay}
+                activeOpacity={1}
+                onPress={() => setShowCategoryModal(false)}
+              >
+                <View style={styles.modalContent}>
+                  <View style={styles.modalHeader}>
+                    <Text style={styles.modalTitle}>Select Category</Text>
+                    <TouchableOpacity onPress={() => setShowCategoryModal(false)}>
+                      <Text style={styles.closeModal}>✕</Text>
+                    </TouchableOpacity>
+                  </View>
+                  <ScrollView style={styles.categoryList}>
+                    {categories.map((cat) => (
+                      <TouchableOpacity
+                        key={cat.id}
+                        style={[
+                          styles.categoryOption,
+                          selectedCategoryId === cat.id && styles.activeOption
+                        ]}
+                        onPress={() => {
+                          setSelectedCategoryId(cat.id);
+                          setShowCategoryModal(false);
+                        }}
+                      >
+                        <Text style={styles.catIcon}>{cat.icon || '📦'}</Text>
+                        <View style={{flex: 1}}>
+                            <Text style={[
+                              styles.catLabel,
+                              selectedCategoryId === cat.id && styles.activeCatLabel
+                            ]}>
+                              {cat.title}
+                            </Text>
+                        </View>
+                        {selectedCategoryId === cat.id && <Text style={styles.checkIcon}>✓</Text>}
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                </View>
+              </TouchableOpacity>
+            </Modal>
           </View>
 
           <View style={styles.imageSection}>
@@ -447,6 +502,86 @@ const styles = StyleSheet.create({
   submitBtnText: {
     color: '#fff',
     fontSize: 16,
+    fontWeight: 'bold',
+  },
+  dropdownTrigger: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: '#F7F9F7',
+    borderWidth: 1,
+    borderColor: '#E0EAE0',
+    borderRadius: 12,
+    paddingHorizontal: 15,
+    paddingVertical: 14,
+  },
+  dropdownTriggerText: {
+    fontSize: 16,
+    color: '#333',
+    fontWeight: '500',
+  },
+  dropdownArrow: {
+    fontSize: 12,
+    color: '#2E7D32',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 25,
+    borderTopRightRadius: 25,
+    maxHeight: '70%',
+    paddingBottom: 40,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  closeModal: {
+    fontSize: 20,
+    color: '#999',
+    padding: 5,
+  },
+  categoryList: {
+    padding: 10,
+  },
+  categoryOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 15,
+    borderRadius: 12,
+    marginBottom: 5,
+  },
+  activeOption: {
+    backgroundColor: '#F1F8E9',
+  },
+  catIcon: {
+    fontSize: 20,
+    marginRight: 15,
+  },
+  catLabel: {
+    fontSize: 16,
+    color: '#444',
+  },
+  activeCatLabel: {
+    color: '#2E7D32',
+    fontWeight: 'bold',
+  },
+  checkIcon: {
+    fontSize: 16,
+    color: '#2E7D32',
     fontWeight: 'bold',
   },
 });
