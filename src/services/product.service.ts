@@ -7,12 +7,13 @@ const API_URL = `${BASE_URL}/product`;
 export interface Product {
     id: string;
     name: string;
-    price: string;
+    price: string | number;
     weight: string;
     image: string;
-    category: string;
+    categoryId: string;
     description?: string;
     stock?: number;
+    lowStockThreshold?: number;
 }
 
 export const getFilteredProducts = async (category?: string, search?: string, tag?: string): Promise<Product[]> => {
@@ -141,6 +142,34 @@ export const updateProductStock = async (productId: string, stock: number): Prom
         return await response.json();
     } catch (error: any) {
         console.error(`Error updating stock for product ${productId}:`, error);
+        throw error;
+    }
+};
+
+export const updateProductThreshold = async (productId: string, lowStockThreshold: number): Promise<Product> => {
+    try {
+        const token = await getAuthToken();
+        const headers: any = {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+        };
+        if (token) {
+            headers['Authorization'] = `Bearer ${token}`;
+        }
+
+        const response = await fetch(`${API_URL}/${productId}/threshold`, {
+            method: 'PUT',
+            headers: headers,
+            body: JSON.stringify({ lowStockThreshold }),
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.message || `Failed to update threshold (Status: ${response.status})`);
+        }
+        return await response.json();
+    } catch (error: any) {
+        console.error(`Error updating threshold for product ${productId}:`, error);
         throw error;
     }
 };
