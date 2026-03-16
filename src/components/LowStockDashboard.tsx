@@ -60,7 +60,7 @@ const LowStockDashboard = () => {
         <View style={styles.productInfo}>
           <Text style={styles.productName}>{item.name}</Text>
           <Text style={styles.productMeta}>
-            {item.category && typeof item.category === 'object' ? ((item.category as any).title || (item.category as any).name || (item.category as any).category) : (item.category || 'General')} • ₹{item.price}
+            {item.categoryId && typeof item.categoryId === 'object' ? ((item.categoryId as any).title || (item.categoryId as any).name || (item.categoryId as any).category) : (item.categoryId || 'General')} • ₹{item.price}
           </Text>
           <View style={[styles.stockBadge, isCritical ? styles.criticalBadge : styles.warningBadge]}>
             <Text style={[styles.stockText, isCritical ? styles.criticalText : styles.warningText]}>
