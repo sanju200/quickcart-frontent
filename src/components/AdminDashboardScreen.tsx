@@ -80,15 +80,12 @@ const AdminDashboardScreen = () => {
 
   return (
     <View style={styles.container}>
-      {/* Header */}
-      <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
+      {/* Dashboard Sub-Header */}
+      <View style={styles.dashboardHeader}>
         <View>
           <Text style={styles.welcomeText}>Admin Portal</Text>
           <Text style={styles.dashboardTitle}>QuickCart Terminal</Text>
         </View>
-        <TouchableOpacity onPress={() => navigate('PROFILE')} style={styles.profileBtn}>
-          <Text style={styles.profileIcon}>👤</Text>
-        </TouchableOpacity>
       </View>
 
       <ScrollView 
@@ -180,12 +177,9 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#fff',
   },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+  dashboardHeader: {
     paddingHorizontal: 20,
-    paddingBottom: 20,
+    paddingVertical: 15,
     backgroundColor: '#fff',
   },
   welcomeText: {
