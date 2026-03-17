@@ -4,16 +4,35 @@ import { getAuthToken } from './authentication.service';
 const BASE_URL = Platform.OS === 'android' ? 'http://10.0.2.2:3000' : 'http://localhost:3000';
 const API_URL = `${BASE_URL}/product`;
 
+export interface CategoryObject {
+    id?: string;
+    title?: string;
+    name?: string;
+    category?: string;
+    icon?: string;
+}
+
 export interface Product {
     id: string;
     name: string;
-    price: string;
+    price: string | number;
     weight: string;
     image: string;
-    category: string;
+    categoryId?: string; // kept for backward compatibility
+    category?: string | CategoryObject; // backend may return the full category object
     description?: string;
     stock?: number;
+    lowStockThreshold?: number;
 }
+
+/** Safely extracts a human-readable category name from a product */
+export const getCategoryName = (product: Product): string => {
+    if (!product.category) return 'General';
+    if (typeof product.category === 'object') {
+        return product.category.title || product.category.name || product.category.category || 'General';
+    }
+    return product.category || 'General';
+};
 
 export const getFilteredProducts = async (category?: string, search?: string, tag?: string): Promise<Product[]> => {
     try {
@@ -141,6 +160,34 @@ export const updateProductStock = async (productId: string, stock: number): Prom
         return await response.json();
     } catch (error: any) {
         console.error(`Error updating stock for product ${productId}:`, error);
+        throw error;
+    }
+};
+
+export const updateProductThreshold = async (productId: string, lowStockThreshold: number): Promise<Product> => {
+    try {
+        const token = await getAuthToken();
+        const headers: any = {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+        };
+        if (token) {
+            headers['Authorization'] = `Bearer ${token}`;
+        }
+
+        const response = await fetch(`${API_URL}/${productId}/threshold`, {
+            method: 'PUT',
+            headers: headers,
+            body: JSON.stringify({ lowStockThreshold }),
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.message || `Failed to update threshold (Status: ${response.status})`);
+        }
+        return await response.json();
+    } catch (error: any) {
+        console.error(`Error updating threshold for product ${productId}:`, error);
         throw error;
     }
 };

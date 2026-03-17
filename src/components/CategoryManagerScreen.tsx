@@ -12,19 +12,22 @@ import {
   Platform,
   ScrollView,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppNavigation } from '../context/AppContext';
 import { getAllCategories, createCategory, deleteCategory, Category } from '../services/category.service';
 
 const CategoryManagerScreen = () => {
   const { navigate, showToast } = useAppNavigation();
+  const insets = useSafeAreaInsets();
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAdding, setIsAdding ] = useState(false);
   
   // New Category Form
-  const [newName, setNewName] = useState('');
-  const [newTag, setNewTag] = useState('');
-  const [newDescription, setNewDescription] = useState('');
+  const [newTitle, setNewTitle] = useState('');
+  const [newCategory, setNewCategory] = useState('');
+  const [newIcon, setNewIcon] = useState('📦');
+  const [newBgColor, setNewBgColor] = useState('#F0F0F0');
 
   useEffect(() => {
     fetchCategories();
@@ -43,22 +46,24 @@ const CategoryManagerScreen = () => {
   };
 
   const handleAddCategory = async () => {
-    if (!newName) {
-      showToast('Category name is required', 'error');
+    if (!newTitle || !newCategory) {
+      showToast('Title and Category identifier are required', 'error');
       return;
     }
 
     try {
       setLoading(true);
       await createCategory({
-        name: newName,
-        tag: newTag,
-        description: newDescription,
+        title: newTitle,
+        category: newCategory,
+        icon: newIcon,
+        bgColor: newBgColor,
       });
       showToast('Category added successfully', 'success');
-      setNewName('');
-      setNewTag('');
-      setNewDescription('');
+      setNewTitle('');
+      setNewCategory('');
+      setNewIcon('📦');
+      setNewBgColor('#F0F0F0');
       setIsAdding(false);
       fetchCategories();
     } catch (error: any) {
@@ -95,14 +100,16 @@ const CategoryManagerScreen = () => {
 
   const renderCategoryItem = ({ item }: { item: Category }) => (
     <View style={styles.categoryCard}>
+      <View style={[styles.categoryIconBox, { backgroundColor: item.bgColor || '#F0F0F0' }]}>
+        <Text style={styles.categoryIconMain}>{item.icon || '📂'}</Text>
+      </View>
       <View style={styles.categoryInfo}>
-        <Text style={styles.categoryName}>{item.name}</Text>
-        {item.tag && <Text style={styles.categoryTag}>Tag: {item.tag}</Text>}
-        {item.description && <Text style={styles.categoryDesc}>{item.description}</Text>}
+        <Text style={styles.categoryName}>{item.title}</Text>
+        <Text style={styles.categoryTag}>Identifier: {item.category}</Text>
       </View>
       <TouchableOpacity 
         style={styles.deleteBtn} 
-        onPress={() => handleDeleteCategory(item.id, item.name)}
+        onPress={() => handleDeleteCategory(item.id, item.title)}
       >
         <Text style={styles.deleteIcon}>🗑️</Text>
       </TouchableOpacity>
@@ -114,11 +121,11 @@ const CategoryManagerScreen = () => {
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
         <TouchableOpacity onPress={() => navigate('HOME')} style={styles.backButton}>
           <Text style={styles.backIcon}>←</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Category Navigator</Text>
+        <Text style={styles.headerTitle}>Global Category Manager</Text>
         <TouchableOpacity onPress={fetchCategories} style={styles.refreshBtn}>
           <Text style={styles.refreshIcon}>🔄</Text>
         </TouchableOpacity>
@@ -130,24 +137,31 @@ const CategoryManagerScreen = () => {
             <Text style={styles.formTitle}>Add New Category</Text>
             <TextInput
               style={styles.input}
-              placeholder="Category Name (e.g. Organic Grains)"
-              value={newName}
-              onChangeText={setNewName}
+              placeholder="Display Title (e.g. Organic Grains)"
+              value={newTitle}
+              onChangeText={setNewTitle}
             />
             <TextInput
               style={styles.input}
-              placeholder="Tag (e.g. grains)"
-              value={newTag}
-              onChangeText={setNewTag}
+              placeholder="Category ID (e.g. grains)"
+              value={newCategory}
+              onChangeText={setNewCategory}
               autoCapitalize="none"
             />
-            <TextInput
-              style={[styles.input, { height: 80 }]}
-              placeholder="Short Description"
-              value={newDescription}
-              onChangeText={setNewDescription}
-              multiline
-            />
+            <View style={{ flexDirection: 'row', gap: 10 }}>
+              <TextInput
+                style={[styles.input, { flex: 1 }]}
+                placeholder="Emoji Icon (e.g. 🌾)"
+                value={newIcon}
+                onChangeText={setNewIcon}
+              />
+              <TextInput
+                style={[styles.input, { flex: 1 }]}
+                placeholder="Hex Color (e.g. #E8F5E9)"
+                value={newBgColor}
+                onChangeText={setNewBgColor}
+              />
+            </View>
             <View style={styles.formActions}>
               <TouchableOpacity 
                 style={[styles.btn, styles.cancelBtn]} 
@@ -304,12 +318,28 @@ const styles = StyleSheet.create({
   categoryCard: {
     flexDirection: 'row',
     backgroundColor: '#fff',
-    padding: 15,
+    padding: 12,
     borderRadius: 16,
     marginBottom: 12,
     alignItems: 'center',
     borderWidth: 1,
     borderColor: '#eee',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+  },
+  categoryIconBox: {
+    width: 50,
+    height: 50,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 15,
+  },
+  categoryIconMain: {
+    fontSize: 24,
   },
   categoryInfo: {
     flex: 1,

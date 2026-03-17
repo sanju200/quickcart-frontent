@@ -11,15 +11,18 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
+  Modal,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppNavigation } from '../context/AppContext';
 import { getAllOffers, createOffer, deleteOffer, Offer } from '../services/offer.service';
 
 const OfferManagerScreen = () => {
   const { navigate, showToast } = useAppNavigation();
+  const insets = useSafeAreaInsets();
   const [offers, setOffers] = useState<Offer[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isAdding, setIsAdding] = useState(false);
+  const [isAdding, setIsAdding ] = useState(false);
 
   // New Offer Form
   const [title, setTitle] = useState('');
@@ -105,15 +108,22 @@ const OfferManagerScreen = () => {
 
   const renderOfferItem = ({ item }: { item: Offer }) => (
     <View style={styles.offerCard}>
-      <View style={styles.offerBadge}>
-        <Text style={styles.offerCode}>{item.code}</Text>
-      </View>
-      <View style={styles.offerInfo}>
-        <Text style={styles.offerTitle}>{item.title}</Text>
-        <Text style={styles.offerValue}>
-          {item.discountType === 'percentage' ? `${item.discountValue}% OFF` : `₹${item.discountValue} OFF`}
-        </Text>
-        {item.description && <Text style={styles.offerDesc}>{item.description}</Text>}
+      <View style={styles.cardMain}>
+        <View style={styles.offerIconContainer}>
+          <Text style={styles.offerIconText}>{item.discountType === 'percentage' ? '%' : '₹'}</Text>
+        </View>
+        <View style={styles.offerInfo}>
+          <Text style={styles.offerTitle}>{item.title}</Text>
+          <View style={styles.badgeRow}>
+            <View style={styles.codeBadge}>
+              <Text style={styles.offerCode}>{item.code}</Text>
+            </View>
+            <Text style={styles.offerValue}>
+              {item.discountType === 'percentage' ? `${item.discountValue}% OFF` : `₹${item.discountValue} OFF`}
+            </Text>
+          </View>
+          {item.description && <Text style={styles.offerDesc} numberOfLines={2}>{item.description}</Text>}
+        </View>
       </View>
       <TouchableOpacity 
         style={styles.deleteBtn} 
@@ -125,11 +135,9 @@ const OfferManagerScreen = () => {
   );
 
   return (
-    <KeyboardAvoidingView 
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
-      <View style={styles.header}>
+    <View style={[styles.container, { paddingBottom: insets.bottom }]}>
+      {/* Sub-Header */}
+      <View style={styles.dashboardHeader}>
         <TouchableOpacity onPress={() => navigate('HOME')} style={styles.backButton}>
           <Text style={styles.backIcon}>←</Text>
         </TouchableOpacity>
@@ -140,99 +148,109 @@ const OfferManagerScreen = () => {
       </View>
 
       <View style={styles.content}>
-        {isAdding ? (
-          <ScrollView style={styles.addForm} showsVerticalScrollIndicator={false}>
-            <Text style={styles.formTitle}>Create New Offer</Text>
-            
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Offer Title</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="e.g. Summer Special 20%"
-                value={title}
-                onChangeText={setTitle}
-              />
-            </View>
+        <TouchableOpacity 
+          style={styles.addTrigger} 
+          onPress={() => setIsAdding(true)}
+        >
+          <Text style={styles.addTriggerText}>+ Launch New Campaign</Text>
+        </TouchableOpacity>
 
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Promo Code</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="SUMMER20"
-                value={code}
-                onChangeText={setCode}
-                autoCapitalize="characters"
-              />
-            </View>
+        <Modal
+          visible={isAdding}
+          animationType="slide"
+          transparent={true}
+          onRequestClose={() => setIsAdding(false)}
+        >
+          <KeyboardAvoidingView 
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            style={styles.modalOverlay}
+          >
+            <View style={styles.addFormModal}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.formTitle}>New Campaign</Text>
+                <TouchableOpacity onPress={() => setIsAdding(false)}>
+                  <Text style={styles.closeIcon}>✕</Text>
+                </TouchableOpacity>
+              </View>
+              
+              <ScrollView showsVerticalScrollIndicator={false}>
+                <View style={styles.inputGroup}>
+                  <Text style={styles.label}>Offer Title</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="e.g. Summer Special 20%"
+                    value={title}
+                    onChangeText={setTitle}
+                  />
+                </View>
 
-            <View style={styles.row}>
-              <View style={[styles.inputGroup, { flex: 1, marginRight: 10 }]}>
-                <Text style={styles.label}>Discount Type</Text>
-                <View style={styles.typeToggle}>
+                <View style={styles.inputGroup}>
+                  <Text style={styles.label}>Promo Code</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="SUMMER20"
+                    value={code}
+                    onChangeText={setCode}
+                    autoCapitalize="characters"
+                  />
+                </View>
+
+                <View style={styles.row}>
+                  <View style={[styles.inputGroup, { flex: 1, marginRight: 10 }]}>
+                    <Text style={styles.label}>Type</Text>
+                    <View style={styles.typeToggle}>
+                      <TouchableOpacity 
+                        style={[styles.typeBtn, discountType === 'percentage' && styles.activeType]}
+                        onPress={() => setDiscountType('percentage')}
+                      >
+                        <Text style={[styles.typeBtnText, discountType === 'percentage' && styles.activeTypeText]}>%</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity 
+                        style={[styles.typeBtn, discountType === 'fixed' && styles.activeType]}
+                        onPress={() => setDiscountType('fixed')}
+                      >
+                        <Text style={[styles.typeBtnText, discountType === 'fixed' && styles.activeTypeText]}>₹</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                  <View style={[styles.inputGroup, { flex: 1 }]}>
+                    <Text style={styles.label}>Value</Text>
+                    <TextInput
+                      style={styles.input}
+                      placeholder="20"
+                      value={discountValue}
+                      onChangeText={setDiscountValue}
+                      keyboardType="numeric"
+                    />
+                  </View>
+                </View>
+
+                <View style={styles.inputGroup}>
+                  <Text style={styles.label}>Description</Text>
+                  <TextInput
+                    style={[styles.input, { height: 60 }]}
+                    placeholder="Conditions, min order, etc."
+                    value={description}
+                    onChangeText={setDescription}
+                    multiline
+                  />
+                </View>
+
+                <View style={styles.formActions}>
                   <TouchableOpacity 
-                    style={[styles.typeBtn, discountType === 'percentage' && styles.activeType]}
-                    onPress={() => setDiscountType('percentage')}
+                    style={[styles.btn, styles.saveBtn, { flex: 1 }]} 
+                    onPress={handleAddOffer}
                   >
-                    <Text style={[styles.typeBtnText, discountType === 'percentage' && styles.activeTypeText]}>%</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity 
-                    style={[styles.typeBtn, discountType === 'fixed' && styles.activeType]}
-                    onPress={() => setDiscountType('fixed')}
-                  >
-                    <Text style={[styles.typeBtnText, discountType === 'fixed' && styles.activeTypeText]}>₹</Text>
+                    <Text style={styles.saveBtnText}>Create Offer</Text>
                   </TouchableOpacity>
                 </View>
-              </View>
-              <View style={[styles.inputGroup, { flex: 1 }]}>
-                <Text style={styles.label}>Value</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="20"
-                  value={discountValue}
-                  onChangeText={setDiscountValue}
-                  keyboardType="numeric"
-                />
-              </View>
+              </ScrollView>
             </View>
-
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Description</Text>
-              <TextInput
-                style={[styles.input, { height: 80 }]}
-                placeholder="Conditions, min order, etc."
-                value={description}
-                onChangeText={setDescription}
-                multiline
-              />
-            </View>
-
-            <View style={styles.formActions}>
-              <TouchableOpacity 
-                style={[styles.btn, styles.cancelBtn]} 
-                onPress={() => setIsAdding(false)}
-              >
-                <Text style={styles.cancelBtnText}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity 
-                style={[styles.btn, styles.saveBtn]} 
-                onPress={handleAddOffer}
-              >
-                <Text style={styles.saveBtnText}>Create Offer</Text>
-              </TouchableOpacity>
-            </View>
-            <View style={{ height: 20 }} />
-          </ScrollView>
-        ) : (
-          <TouchableOpacity 
-            style={styles.addTrigger} 
-            onPress={() => setIsAdding(true)}
-          >
-            <Text style={styles.addTriggerText}>+ Launch New Campaign</Text>
-          </TouchableOpacity>
-        )}
+          </KeyboardAvoidingView>
+        </Modal>
 
         {loading && !isAdding ? (
-          <ActivityIndicator size="large" color="#2E7D32" style={{ marginTop: 50 }} />
+          <ActivityIndicator size="large" color="#2E7D32" style={{ marginTop: 20 }} />
         ) : (
           <FlatList
             data={offers}
@@ -248,7 +266,7 @@ const OfferManagerScreen = () => {
           />
         )}
       </View>
-    </KeyboardAvoidingView>
+    </View>
   );
 };
 
@@ -257,13 +275,15 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F9FBF9',
   },
-  header: {
+  dashboardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 15,
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 15,
     backgroundColor: '#fff',
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    borderBottomColor: '#f0f0f0',
   },
   backButton: {
     padding: 5,
@@ -271,12 +291,12 @@ const styles = StyleSheet.create({
   },
   backIcon: {
     fontSize: 24,
-    color: '#000',
+    color: '#1B5E20',
   },
   headerTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: 'bold',
-    color: '#000',
+    color: '#1B5E20',
     flex: 1,
   },
   refreshBtn: {
@@ -306,23 +326,33 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     fontSize: 16,
   },
-  addForm: {
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  addFormModal: {
     backgroundColor: '#fff',
-    padding: 15,
-    borderRadius: 16,
+    borderTopLeftRadius: 25,
+    borderTopRightRadius: 25,
+    padding: 20,
+    maxHeight: '85%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: 20,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    maxHeight: '80%',
+  },
+  closeIcon: {
+    fontSize: 20,
+    color: '#999',
+    padding: 5,
   },
   formTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: 'bold',
     color: '#333',
-    marginBottom: 20,
   },
   inputGroup: {
     marginBottom: 15,
@@ -400,60 +430,85 @@ const styles = StyleSheet.create({
   },
   offerCard: {
     backgroundColor: '#fff',
-    padding: 15,
-    borderRadius: 16,
+    borderRadius: 18,
     marginBottom: 15,
+    padding: 15,
     borderWidth: 1,
-    borderColor: '#eee',
-    position: 'relative',
-    overflow: 'hidden',
+    borderColor: '#E8F5E9',
+    elevation: 2,
+    shadowColor: '#2E7D32',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 5,
   },
-  offerBadge: {
-    position: 'absolute',
-    top: 0,
-    right: 0,
+  cardMain: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  offerIconContainer: {
+    width: 45,
+    height: 45,
+    borderRadius: 12,
     backgroundColor: '#F1F8E9',
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderBottomLeftRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 15,
   },
-  offerCode: {
-    fontSize: 12,
+  offerIconText: {
+    fontSize: 20,
     fontWeight: 'bold',
     color: '#2E7D32',
-    letterSpacing: 1,
+  },
+  badgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginTop: 5,
+  },
+  codeBadge: {
+    backgroundColor: '#2E7D32',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  offerCode: {
+    fontSize: 11,
+    fontWeight: 'bold',
+    color: '#fff',
+    letterSpacing: 0.5,
   },
   offerInfo: {
-    paddingRight: 40,
+    flex: 1,
   },
   offerTitle: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: 'bold',
     color: '#333',
   },
   offerValue: {
-    fontSize: 18,
-    fontWeight: '900',
+    fontSize: 14,
+    fontWeight: '800',
     color: '#2E7D32',
-    marginTop: 5,
   },
   offerDesc: {
-    fontSize: 12,
-    color: '#888',
-    marginTop: 5,
+    fontSize: 11,
+    color: '#757575',
+    marginTop: 6,
+    lineHeight: 14,
   },
   deleteBtn: {
     position: 'absolute',
-    bottom: 10,
+    top: 10,
     right: 10,
-    padding: 10,
+    padding: 8,
   },
   deleteIcon: {
-    fontSize: 18,
+    fontSize: 16,
+    opacity: 0.5,
   },
   emptyContainer: {
     alignItems: 'center',
-    marginTop: 50,
+    marginTop: 60,
   },
   emptyIcon: {
     fontSize: 50,

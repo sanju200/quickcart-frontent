@@ -12,7 +12,7 @@ import {
   Alert
 } from 'react-native';
 import { useAppNavigation, useCartCount } from '../context/AppContext';
-import { getFilteredProducts, Product } from '../services/product.service';
+import { getFilteredProducts, Product, getCategoryName } from '../services/product.service';
 import { addToCart, handleCartQuantityChange, CartItem } from '../services/cart.service';
 
 const FilteredProductsScreen = () => {
@@ -138,7 +138,7 @@ const FilteredProductsScreen = () => {
                     <Text style={styles.productWeight}>{item.weight}</Text>
                     <View style={styles.categoryBadge}>
                        <Text style={styles.categoryBadgeText}>
-                         {item.category && typeof item.category === 'object' ? ((item.category as any).title || (item.category as any).name || (item.category as any).category) : (item.category || 'General')}
+                         {getCategoryName(item)}
                        </Text>
                     </View>
                   </View>

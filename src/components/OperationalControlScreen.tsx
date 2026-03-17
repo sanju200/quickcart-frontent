@@ -19,6 +19,9 @@ const OperationalControlScreen = () => {
     { id: '1', name: 'Downtown', active: true },
     { id: '2', name: 'Green Park', active: true },
     { id: '3', name: 'Airport Road', active: false },
+    { id: '4', name: 'Downtown', active: true },
+    { id: '5', name: 'Green Park', active: true },
+    { id: '6', name: 'Airport Road', active: false },
   ]);
 
   const handleSendBroadcast = () => {

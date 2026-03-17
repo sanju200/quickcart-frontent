@@ -6,10 +6,12 @@ const API_URL = `${BASE_URL}/categories`;
 
 export interface Category {
     id: string;
-    name: string;
+    title: string;
+    category: string;
     description?: string;
     image?: string;
-    tag?: string;
+    icon?: string;
+    bgColor?: string;
 }
 
 export const getAllCategories = async (): Promise<Category[]> => {
@@ -34,7 +36,7 @@ export const getAllCategories = async (): Promise<Category[]> => {
         }
         const data = await response.json();
         const categories = Array.isArray(data) ? data : [];
-        return [{ id: 'all', name: 'All', icon: '🌟' } as any, ...categories];
+        return [{ id: 'all', title: 'All', category: 'all', icon: '🌟' } as any, ...categories];
     } catch (error: any) {
         console.error('Error fetching categories:', error);
         throw error;

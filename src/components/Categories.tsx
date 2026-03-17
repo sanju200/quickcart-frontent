@@ -9,7 +9,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { useAppNavigation, useCartCount } from '../context/AppContext';
-import { getAllProducts, Product } from '../services/product.service';
+import { getAllProducts, Product, getCategoryName } from '../services/product.service';
 import { addToCart, handleCartQuantityChange, CartItem } from '../services/cart.service';
 import { getOrders, Order, OrderItem } from '../services/order.service';
 import { useEffect } from 'react';
@@ -88,7 +88,7 @@ const Categories = () => {
               price: (orderItem.priceAtPurchase || orderItem.price || orderItem.product?.price || 0).toString(),
               image: orderItem.productImage || orderItem.product?.image || 'https://via.placeholder.com/150',
               weight: orderItem.product?.weight || 'Unit',
-              category: orderItem.product?.category || 'general'
+              category: orderItem.product?.category || 'General'
             };
             productMap.set(productKey, product);
           }
@@ -219,7 +219,7 @@ const Categories = () => {
                 <Text style={styles.productWeight}>{item.weight}</Text>
                 <View style={styles.categoryBadge}>
                    <Text style={styles.categoryBadgeText}>
-                     {item.category && typeof item.category === 'object' ? ((item.category as any).title || (item.category as any).name || (item.category as any).category) : (item.category || 'General')}
+                     {getCategoryName(item)}
                    </Text>
                 </View>
               </View>
@@ -268,7 +268,11 @@ const Categories = () => {
         </ScrollView>
       ) : (
         <View style={styles.emptyRecentContainer}>
+          <View style={styles.emptyRecentIconBox}>
+            <Text style={styles.emptyRecentIcon}>🛍️</Text>
+          </View>
           <Text style={styles.emptyRecentText}>No recent orders yet</Text>
+          <Text style={styles.emptyRecentSubText}>Your ordered items will appear here</Text>
         </View>
       )}
     </View>
@@ -489,19 +493,44 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   emptyRecentContainer: {
-    height: 100,
+    height: 180,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#fff',
+    backgroundColor: '#F9F9F9',
     marginHorizontal: 20,
-    borderRadius: 12,
+    borderRadius: 16,
     borderWidth: 1,
     borderColor: '#eee',
     borderStyle: 'dashed',
+    padding: 20,
+  },
+  emptyRecentIconBox: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: '#fff',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 10,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+  },
+  emptyRecentIcon: {
+    fontSize: 24,
   },
   emptyRecentText: {
+    color: '#333',
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginBottom: 4,
+  },
+  emptyRecentSubText: {
     color: '#999',
-    fontSize: 14,
+    fontSize: 12,
+    textAlign: 'center',
   },
   viewAllRecentCard: {
     width: 140,

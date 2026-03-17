@@ -11,13 +11,15 @@ import {
   Image,
   ScrollView,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppNavigation } from '../context/AppContext';
 import { getAllOrders, updateOrderStatus, Order, OrderStatus } from '../services/order.service';
-import { getAllProducts, Product, updateProductStock } from '../services/product.service';
+import { getAllProducts, Product, updateProductStock, updateProductThreshold, getCategoryName } from '../services/product.service';
 import { getAllCategories } from '../services/category.service';
 
 const InventoryManagerScreen = () => {
   const { navigate } = useAppNavigation();
+  const insets = useSafeAreaInsets();
   const [orders, setOrders] = useState<Order[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -64,7 +66,7 @@ const InventoryManagerScreen = () => {
         
         setStats(prev => ({
           ...prev,
-          lowStock: allProducts.filter(p => (p.stock || 0) < 5).length,
+          lowStock: allProducts.filter(p => (p.stock || 0) < (p.lowStockThreshold || 5)).length,
         }));
       }
     } catch (error) {
@@ -131,16 +133,61 @@ const InventoryManagerScreen = () => {
       await updateProductStock(productId, newStock);
       
       // Update stats correctly after change
-      const allProducts = products.map(p => p.id === productId ? { ...p, stock: newStock } : p);
       setStats(prev => ({
         ...prev,
-        lowStock: allProducts.filter(p => (p.stock || 0) < 5).length,
+        lowStock: products.map(p => p.id === productId ? { ...p, stock: newStock } : p)
+          .filter(p => (p.stock || 0) < (p.lowStockThreshold || 5)).length,
       }));
     } catch (error: any) {
       Alert.alert('Error', error.message || 'Failed to update stock in database');
       // Rollback on error
       fetchData();
     }
+  };
+
+  const handleUpdateThreshold = (productId: string) => {
+    const product = products.find(p => p.id === productId);
+    if (!product) return;
+
+    Alert.prompt(
+      'Set Alert Threshold',
+      `Current threshold for ${product.name} is ${product.lowStockThreshold || 5}. When stock falls below this number, it will show as Low Stock.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Update',
+          onPress: async (value?: string) => {
+            const newThreshold = parseInt(value || '', 10);
+            if (isNaN(newThreshold) || newThreshold < 0) {
+              Alert.alert('Invalid Input', 'Please enter a valid number');
+              return;
+            }
+
+            try {
+              // Optimistic update
+              setProducts(prev => prev.map(p => 
+                p.id === productId ? { ...p, lowStockThreshold: newThreshold } : p
+              ));
+
+              await updateProductThreshold(productId, newThreshold);
+              
+              setStats(prev => ({
+                ...prev,
+                lowStock: products.map(p => p.id === productId ? { ...p, lowStockThreshold: newThreshold } : p)
+                  .filter(p => (p.stock || 0) < (p.lowStockThreshold || 5)).length,
+              }));
+              
+              Alert.alert('Success', 'Threshold updated successfully');
+            } catch (err: any) {
+              Alert.alert('Error', err.message || 'Failed to update threshold');
+              fetchData();
+            }
+          }
+        }
+      ],
+      'plain-text',
+      (product.lowStockThreshold || 5).toString()
+    );
   };
 
   const toggleExpand = (orderId: string) => {
@@ -212,19 +259,27 @@ const InventoryManagerScreen = () => {
   };
 
   const renderProductItem = ({ item }: { item: Product }) => {
-    const isLowStock = (item.stock || 0) < 5;
+    const isLowStock = (item.stock || 0) < (item.lowStockThreshold || 5);
     return (
         <View style={styles.productCard}>
             <Image source={{ uri: item.image }} style={styles.productImg} />
             <View style={styles.productInfo}>
                 <Text style={styles.productName}>{item.name}</Text>
                 <Text style={styles.productCategory}>
-                    {item.category && typeof item.category === 'object' ? ((item.category as any).title || (item.category as any).name || (item.category as any).category) : (item.category || 'General')} • ₹{item.price}
+                    {getCategoryName(item)} • ₹{item.price}
                 </Text>
-                <View style={[styles.stockBadge, isLowStock ? styles.lowStockBg : styles.normalStockBg]}>
-                    <Text style={[styles.stockText, isLowStock ? styles.lowStockText : styles.normalStockText]}>
-                        Stock: {item.stock} {isLowStock ? '(Low Stock!)' : ''}
-                    </Text>
+                <View style={styles.stockStatusRow}>
+                    <View style={[styles.stockBadge, isLowStock ? styles.lowStockBg : styles.normalStockBg]}>
+                        <Text style={[styles.stockText, isLowStock ? styles.lowStockText : styles.normalStockText]}>
+                            Stock: {item.stock} {isLowStock ? '(Low Stock!)' : ''}
+                        </Text>
+                    </View>
+                    <TouchableOpacity 
+                        style={styles.thresholdBadge} 
+                        onPress={() => handleUpdateThreshold(item.id)}
+                    >
+                        <Text style={styles.thresholdText}>🔔 Alert: {item.lowStockThreshold || 5}</Text>
+                    </TouchableOpacity>
                 </View>
             </View>
             <View style={styles.stockControls}>
@@ -251,8 +306,8 @@ const InventoryManagerScreen = () => {
   );
 
   const filteredProducts = products.filter(p => {
-    const pCatId = (p.category && typeof p.category === 'object') ? (p.category as any).id : (p as any).categoryId;
-    const catStr = (p.category && typeof p.category === 'object') ? ((p.category as any).category || (p.category as any).title || (p.category as any).name || '') : (p.category || '');
+    const pCatId = (p.category && typeof p.category === 'object') ? (p.category as any).id : p.categoryId;
+    const catStr = getCategoryName(p);
     
     const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
                           catStr.toLowerCase().includes(searchQuery.toLowerCase());
@@ -266,19 +321,12 @@ const InventoryManagerScreen = () => {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigate('HOME')} style={styles.backButton}>
-          <Text style={styles.backIcon}>←</Text>
-        </TouchableOpacity>
+      {/* Dashboard Sub-Header */}
+      <View style={styles.dashboardHeader}>
         <Text style={styles.headerTitle}>Inventory Manager</Text>
-        <View style={styles.headerActions}>
-          <TouchableOpacity onPress={() => navigate('ADD_PRODUCT')} style={styles.addProductBtn}>
-            <Text style={styles.addProductIcon}>+ Add</Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={fetchData} style={styles.refreshBtn}>
-            <Text style={styles.refreshIcon}>🔄</Text>
-          </TouchableOpacity>
-        </View>
+        <TouchableOpacity onPress={fetchData} style={styles.refreshBtn}>
+          <Text style={styles.refreshIcon}>🔄</Text>
+        </TouchableOpacity>
       </View>
 
       <ScrollView contentContainerStyle={{ paddingBottom: 120 }} stickyHeaderIndices={[2]} showsVerticalScrollIndicator={false}>
@@ -409,13 +457,13 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F7F9F7',
   },
-  header: {
+  dashboardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 15,
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 15,
     backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
   },
   backButton: {
     padding: 5,
@@ -585,6 +633,25 @@ const styles = StyleSheet.create({
   stockControls: { alignItems: 'center' },
   stockBtn: { backgroundColor: '#f0f0f0', width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
   stockBtnText: { fontSize: 18, fontWeight: 'bold', color: '#444' },
+  stockStatusRow: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    marginTop: 6,
+    gap: 8 
+  },
+  thresholdBadge: { 
+    backgroundColor: '#E8EAF6', 
+    paddingHorizontal: 8, 
+    paddingVertical: 2, 
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#C5CAE9'
+  },
+  thresholdText: { 
+    fontSize: 11, 
+    fontWeight: 'bold',
+    color: '#3F51B5'
+  },
 
   emptyContainer: { alignItems: 'center', marginTop: 50 },
   emptyIcon: { fontSize: 50, opacity: 0.1 },

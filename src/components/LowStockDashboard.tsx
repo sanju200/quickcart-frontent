@@ -10,7 +10,7 @@ import {
   Alert,
 } from 'react-native';
 import { useAppNavigation } from '../context/AppContext';
-import { getAllProducts, Product, updateProductStock } from '../services/product.service';
+import { getAllProducts, Product, updateProductStock, getCategoryName } from '../services/product.service';
 
 const LowStockDashboard = () => {
   const { navigate, showToast } = useAppNavigation();
@@ -60,7 +60,7 @@ const LowStockDashboard = () => {
         <View style={styles.productInfo}>
           <Text style={styles.productName}>{item.name}</Text>
           <Text style={styles.productMeta}>
-            {item.category && typeof item.category === 'object' ? ((item.category as any).title || (item.category as any).name || (item.category as any).category) : (item.category || 'General')} • ₹{item.price}
+            {getCategoryName(item)} • ₹{item.price}
           </Text>
           <View style={[styles.stockBadge, isCritical ? styles.criticalBadge : styles.warningBadge]}>
             <Text style={[styles.stockText, isCritical ? styles.criticalText : styles.warningText]}>

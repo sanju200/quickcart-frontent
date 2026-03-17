@@ -18,6 +18,9 @@ const CommissionManagerScreen = () => {
     { id: '1', name: 'Downtown (Zone A)', multiplier: '1.2' },
     { id: '2', name: 'Suburbs (Zone B)', multiplier: '1.0' },
     { id: '3', name: 'Industrial (Zone C)', multiplier: '1.5' },
+    { id: '4', name: 'Downtown (Zone A)', multiplier: '1.2' },
+    { id: '5', name: 'Suburbs (Zone B)', multiplier: '1.0' },
+    { id: '6', name: 'Industrial (Zone C)', multiplier: '1.5' },
   ]);
 
   const handleUpdateBase = () => {
