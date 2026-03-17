@@ -14,7 +14,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppNavigation } from '../context/AppContext';
 import { getAllOrders, updateOrderStatus, Order, OrderStatus } from '../services/order.service';
-import { getAllProducts, Product, updateProductStock, updateProductThreshold } from '../services/product.service';
+import { getAllProducts, Product, updateProductStock, updateProductThreshold, getCategoryName } from '../services/product.service';
 import { getAllCategories } from '../services/category.service';
 
 const InventoryManagerScreen = () => {
@@ -266,7 +266,7 @@ const InventoryManagerScreen = () => {
             <View style={styles.productInfo}>
                 <Text style={styles.productName}>{item.name}</Text>
                 <Text style={styles.productCategory}>
-                    {item.categoryId && typeof item.categoryId === 'object' ? ((item.categoryId as any).title || (item.categoryId as any).name || (item.categoryId as any).category) : (item.categoryId || 'General')} • ₹{item.price}
+                    {getCategoryName(item)} • ₹{item.price}
                 </Text>
                 <View style={styles.stockStatusRow}>
                     <View style={[styles.stockBadge, isLowStock ? styles.lowStockBg : styles.normalStockBg]}>
@@ -306,8 +306,8 @@ const InventoryManagerScreen = () => {
   );
 
   const filteredProducts = products.filter(p => {
-    const pCatId = (p.categoryId && typeof p.categoryId === 'object') ? (p.categoryId as any).id : (p as any).categoryId;
-    const catStr = (p.categoryId && typeof p.categoryId === 'object') ? ((p.categoryId as any).category || (p.categoryId as any).title || (p.categoryId as any).name || '') : (p.categoryId || '');
+    const pCatId = (p.category && typeof p.category === 'object') ? (p.category as any).id : p.categoryId;
+    const catStr = getCategoryName(p);
     
     const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
                           catStr.toLowerCase().includes(searchQuery.toLowerCase());

@@ -11,7 +11,7 @@ import {
   TextInput
 } from 'react-native';
 import { useAppNavigation, useCartCount } from '../context/AppContext';
-import { getFilteredProducts, Product } from '../services/product.service';
+import { getFilteredProducts, Product, getCategoryName } from '../services/product.service';
 import { getAllCategories } from '../services/category.service';
 import { addToCart, handleCartQuantityChange, CartItem } from '../services/cart.service';
 import { Alert } from 'react-native';
@@ -179,8 +179,25 @@ const CategoryProducts = () => {
               contentContainerStyle={styles.listContent}
               showsVerticalScrollIndicator={false}
               ListEmptyComponent={
-                <View style={styles.centerContainer}>
-                  <Text style={styles.emptyText}>No products found in this category</Text>
+                <View style={styles.emptyContainer}>
+                  <View style={styles.emptyIconCircle}>
+                    <Text style={styles.emptyIconText}>🔍</Text>
+                  </View>
+                  <Text style={styles.emptyTitle}>No Products Found</Text>
+                  <Text style={styles.emptyDescription}>
+                    We couldn't find any products matching your current category or search filters.
+                  </Text>
+                  {(selectedSideCategory !== 'all' || localSearch !== '') && (
+                    <TouchableOpacity 
+                      style={styles.clearFiltersButton} 
+                      onPress={() => {
+                        setSelectedSideCategory('all');
+                        setLocalSearch('');
+                      }}
+                    >
+                      <Text style={styles.clearFiltersText}>Clear All Filters</Text>
+                    </TouchableOpacity>
+                  )}
                 </View>
               }
               renderItem={({ item }) => (
@@ -192,7 +209,7 @@ const CategoryProducts = () => {
                       <Text style={styles.productWeight}>{item.weight}</Text>
                       <View style={styles.categoryBadge}>
                           <Text style={styles.categoryBadgeText}>
-                            {item.category && typeof item.category === 'object' ? ((item.category as any).title || (item.category as any).name || (item.category as any).category) : (item.category || 'General')}
+                            {getCategoryName(item)}
                           </Text>
                       </View>
                     </View>
@@ -484,11 +501,54 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     textTransform: 'uppercase',
   },
-  emptyText: {
-    color: '#999',
-    fontSize: 14,
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingTop: 80,
+    paddingHorizontal: 40,
+  },
+  emptyIconCircle: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#F1F8E9',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  emptyIconText: {
+    fontSize: 40,
+  },
+  emptyTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 10,
     textAlign: 'center',
-    marginTop: 50,
+  },
+  emptyDescription: {
+    fontSize: 14,
+    color: '#666',
+    textAlign: 'center',
+    lineHeight: 20,
+    marginBottom: 25,
+  },
+  clearFiltersButton: {
+    backgroundColor: '#2E7D32',
+    paddingHorizontal: 25,
+    paddingVertical: 12,
+    borderRadius: 30,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+  },
+  clearFiltersText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 14,
   },
 });
 

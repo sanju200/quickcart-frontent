@@ -4,17 +4,35 @@ import { getAuthToken } from './authentication.service';
 const BASE_URL = Platform.OS === 'android' ? 'http://10.0.2.2:3000' : 'http://localhost:3000';
 const API_URL = `${BASE_URL}/product`;
 
+export interface CategoryObject {
+    id?: string;
+    title?: string;
+    name?: string;
+    category?: string;
+    icon?: string;
+}
+
 export interface Product {
     id: string;
     name: string;
     price: string | number;
     weight: string;
     image: string;
-    categoryId: string;
+    categoryId?: string; // kept for backward compatibility
+    category?: string | CategoryObject; // backend may return the full category object
     description?: string;
     stock?: number;
     lowStockThreshold?: number;
 }
+
+/** Safely extracts a human-readable category name from a product */
+export const getCategoryName = (product: Product): string => {
+    if (!product.category) return 'General';
+    if (typeof product.category === 'object') {
+        return product.category.title || product.category.name || product.category.category || 'General';
+    }
+    return product.category || 'General';
+};
 
 export const getFilteredProducts = async (category?: string, search?: string, tag?: string): Promise<Product[]> => {
     try {
