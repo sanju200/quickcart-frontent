@@ -96,8 +96,8 @@ const CategoryProducts = () => {
     }
   };
 
-  // Filtering is mainly handled on the backend, but we filter out out-of-stock items here
-  const filteredProducts = products.filter(product => product.stock !== 0);
+  // Filtering is now handled on the backend
+  const filteredProducts = products;
 
   return (
     <View style={styles.container}>
