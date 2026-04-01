@@ -319,7 +319,7 @@ const styles = StyleSheet.create({
   tab: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
+    paddingHorizontal: 25,
     paddingVertical: 10,
     borderRadius: 25,
     borderWidth: 1,
