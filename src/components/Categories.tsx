@@ -36,18 +36,29 @@ const Categories = () => {
   const { cartItems, refreshCartCount } = useCartCount();
   const [recentlyOrdered, setRecentlyOrdered] = useState<Product[]>([]);
   const [gridCategories, setGridCategories] = useState<any[]>([]);
+  const [categoryMap, setCategoryMap] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchRecentlyOrdered();
     const fetchCats = async () => {
         try {
             const data = await getAllCategories();
             // Filter out 'all' from grid display
             setGridCategories(data.filter(c => c.id !== 'all'));
+            
+            // Create a lookup map for categoryId -> title
+            const map: Record<string, string> = {};
+            data.forEach(c => {
+                if (c.id) map[c.id] = c.title || c.name || c.category;
+            });
+            setCategoryMap(map);
+            
+            // Now fetch recently ordered products AFTER we have the category map
+            fetchRecentlyOrdered(map);
         } catch (err) {
             console.error('Error fetching grid categories:', err);
+            fetchRecentlyOrdered({});
         }
     };
     fetchCats();
@@ -68,10 +79,11 @@ const Categories = () => {
     }
   };
 
-  const fetchRecentlyOrdered = async () => {
+  const fetchRecentlyOrdered = async (currentCatMap?: Record<string, string>) => {
     try {
       setLoading(true);
       const orders = await getOrders();
+      const mapToUse = currentCatMap || categoryMap;
       
       const productMap = new Map<string, Product>();
       
@@ -88,7 +100,10 @@ const Categories = () => {
               price: (orderItem.priceAtPurchase || orderItem.price || orderItem.product?.price || 0).toString(),
               image: orderItem.productImage || orderItem.product?.image || 'https://via.placeholder.com/150',
               weight: orderItem.product?.weight || 'Unit',
-              category: orderItem.product?.category || 'General'
+              category: orderItem.product?.category || 
+                        (orderItem.categoryId ? mapToUse[orderItem.categoryId] : null) || 
+                        (orderItem as any).category || 
+                        'General'
             };
             productMap.set(productKey, product);
           }
@@ -116,7 +131,7 @@ const Categories = () => {
   };
 
   useEffect(() => {
-    fetchRecentlyOrdered();
+    // Redundant fetch removed as it's now triggered inside fetchCats to ensure catMap is ready
   }, []);
 
   return (

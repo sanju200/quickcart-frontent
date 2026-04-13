@@ -45,6 +45,7 @@ const ProfileScreen = () => {
       </View>
 
       <ScrollView 
+        style={{ flex: 1 }}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >

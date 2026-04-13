@@ -10,25 +10,42 @@ import {
   Alert
 } from 'react-native';
 import { useAppNavigation, useCartCount } from '../context/AppContext';
-import { Product } from '../services/product.service';
+import { Product, getCategoryName } from '../services/product.service';
 import { getOrders, Order, OrderItem } from '../services/order.service';
 import { addToCart, handleCartQuantityChange, CartItem } from '../services/cart.service';
+import { getAllCategories } from '../services/category.service';
 
 const PreviouslyOrderedProducts = () => {
   const { navigate } = useAppNavigation();
   const { cartItems, refreshCartCount } = useCartCount();
   const [products, setProducts] = useState<Product[]>([]);
+  const [categoryMap, setCategoryMap] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchPreviouslyOrdered();
+    const init = async () => {
+      try {
+        const cats = await getAllCategories();
+        const map: Record<string, string> = {};
+        cats.forEach(c => {
+          if (c.id) map[c.id] = c.title || c.category;
+        });
+        setCategoryMap(map);
+        await fetchPreviouslyOrdered(map);
+      } catch (err) {
+        console.error('Error fetching categories:', err);
+        await fetchPreviouslyOrdered({});
+      }
+    };
+    init();
   }, []);
 
-  const fetchPreviouslyOrdered = async () => {
+  const fetchPreviouslyOrdered = async (currentCatMap?: Record<string, string>) => {
     try {
       setLoading(true);
       const orders = await getOrders();
+      const mapToUse = currentCatMap || categoryMap;
       
       // Use a Map to deduplicate products by their title (since API items don't have a separate productId)
       const productMap = new Map<string, Product>();
@@ -45,7 +62,7 @@ const PreviouslyOrderedProducts = () => {
               price: (orderItem.priceAtPurchase || orderItem.price || orderItem.product?.price || 0).toString(),
               image: orderItem.productImage || orderItem.product?.image || 'https://via.placeholder.com/150',
               weight: orderItem.product?.weight || 'Unit',
-              category: orderItem.product?.category || 'ordered'
+              category: (orderItem.categoryId && mapToUse[orderItem.categoryId]) || orderItem.product?.category || (orderItem as any).category || 'ordered'
             };
             productMap.set(productKey, product);
           }
@@ -104,7 +121,7 @@ const PreviouslyOrderedProducts = () => {
       ) : error ? (
         <View style={styles.centerContainer}>
           <Text style={styles.errorText}>{error}</Text>
-          <TouchableOpacity style={styles.retryButton} onPress={fetchPreviouslyOrdered}>
+          <TouchableOpacity style={styles.retryButton} onPress={() => fetchPreviouslyOrdered()}>
             <Text style={styles.retryText}>Retry</Text>
           </TouchableOpacity>
         </View>
@@ -125,7 +142,14 @@ const PreviouslyOrderedProducts = () => {
               <Image source={{ uri: item.image }} style={styles.productImage} />
               <View style={styles.productInfo}>
                 <Text style={styles.productName} numberOfLines={2}>{item.name}</Text>
-                <Text style={styles.productWeight}>{item.weight}</Text>
+                <View style={styles.cardTags}>
+                  <Text style={styles.productWeight}>{item.weight}</Text>
+                  <View style={styles.categoryBadge}>
+                    <Text style={styles.categoryBadgeText}>
+                      {getCategoryName(item)}
+                    </Text>
+                  </View>
+                </View>
                 <View style={styles.priceRow}>
                   <Text style={styles.productPrice}>₹{item.price}</Text>
                   {getProductQuantity(item.id) > 0 ? (
@@ -301,6 +325,24 @@ const styles = StyleSheet.create({
     color: '#999',
     textAlign: 'center',
     marginTop: 50,
+  },
+  cardTags: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginVertical: 4,
+  },
+  categoryBadge: {
+    backgroundColor: '#F1F8E9',
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+    borderRadius: 4,
+  },
+  categoryBadgeText: {
+    fontSize: 8,
+    color: '#2E7D32',
+    fontWeight: 'bold',
+    textTransform: 'uppercase',
   },
 });
 

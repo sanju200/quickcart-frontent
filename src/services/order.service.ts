@@ -16,6 +16,8 @@ export interface OrderItem {
     price: string;
     totalAmount: string;
     priceAtPurchase?: number;
+    category?: string | any;
+    categoryId?: string;
     product?: Product; // Populated for UI convenience if available
 }
 
