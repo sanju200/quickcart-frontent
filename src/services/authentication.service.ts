@@ -60,7 +60,8 @@ export const loginUser = async (email: string, password: string) => {
 
         const userData: UserData = {
             id: data.id || data.user?.id || '',
-            name: data.name || data.user?.name || email.split('@')[0],
+            name: data.name || data.user?.name || 
+                  (data.firstName || data.user?.firstName ? `${data.firstName || data.user?.firstName} ${data.lastName || data.user?.lastName || ''}`.trim() : email.split('@')[0]),
             email: data.email || data.user?.email || email,
             phone: data.phone || data.user?.phone || '',
             role: data.role || data.user?.role || 'USER',
@@ -180,7 +181,7 @@ export const updateProfile = async (userData: UserData) => {
 
         const updatedUser: UserData = {
             id: data.id || userData.id,
-            name: data.name || userData.name,
+            name: data.name || (data.firstName ? `${data.firstName} ${data.lastName || ''}`.trim() : userData.name),
             email: data.email || userData.email,
             phone: data.phone || userData.phone,
             role: data.role || userData.role,
